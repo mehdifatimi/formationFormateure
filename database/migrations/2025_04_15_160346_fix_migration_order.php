@@ -6,8 +6,15 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * Run the migrations.
+     */
     public function up(): void
     {
+        // Supprimer d'abord la table si elle existe
+        Schema::dropIfExists('formation_participant');
+
+        // Recréer la table avec les bonnes relations
         Schema::create('formation_participant', function (Blueprint $table) {
             $table->id();
             $table->foreignId('formation_id')->constrained()->onDelete('cascade');
@@ -20,8 +27,11 @@ return new class extends Migration
         });
     }
 
+    /**
+     * Reverse the migrations.
+     */
     public function down(): void
     {
         Schema::dropIfExists('formation_participant');
     }
-}; 
+};

@@ -59,4 +59,16 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
-Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum'); 
+Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
+
+// Formation validation routes
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('formations/{formation}/validate', [FormationController::class, 'validate']);
+    Route::post('formations/{formation}/reject', [FormationController::class, 'reject']);
+    Route::get('formations/pending-validations', [FormationController::class, 'pendingValidations']);
+});
+
+// Participant formation management routes
+Route::post('participants/{participant}/formations', [ParticipantController::class, 'attachFormation']);
+Route::delete('participants/{participant}/formations/{formation}', [ParticipantController::class, 'detachFormation']);
+Route::put('participants/{participant}/formations/{formation}/status', [ParticipantController::class, 'updateFormationStatus']); 

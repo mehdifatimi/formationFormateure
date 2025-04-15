@@ -8,7 +8,7 @@ const ParticipantList = () => {
     const [participants, setParticipants] = useState([]);
     const [loading, setLoading] = useState(false);
     const [modalVisible, setModalVisible] = useState(false);
-    const [editingParticipant, setEditingParticipant] = useState(null);
+    const [selectedParticipant, setSelectedParticipant] = useState(null);
 
     useEffect(() => {
         fetchParticipants();
@@ -20,6 +20,7 @@ const ParticipantList = () => {
             const response = await api.get('/participants');
             setParticipants(response.data);
         } catch (error) {
+            console.error('Error fetching participants:', error);
             message.error('Erreur lors du chargement des participants');
         } finally {
             setLoading(false);
@@ -27,12 +28,12 @@ const ParticipantList = () => {
     };
 
     const handleAdd = () => {
-        setEditingParticipant(null);
+        setSelectedParticipant(null);
         setModalVisible(true);
     };
 
     const handleEdit = (participant) => {
-        setEditingParticipant(participant);
+        setSelectedParticipant(participant);
         setModalVisible(true);
     };
 
@@ -46,10 +47,10 @@ const ParticipantList = () => {
         }
     };
 
-    const handleSave = async (values) => {
+    const handleSubmit = async (values) => {
         try {
-            if (editingParticipant) {
-                await api.put(`/participants/${editingParticipant.id}`, values);
+            if (selectedParticipant) {
+                await api.put(`/participants/${selectedParticipant.id}`, values);
                 message.success('Participant mis à jour avec succès');
             } else {
                 await api.post('/participants', values);
@@ -59,21 +60,6 @@ const ParticipantList = () => {
             fetchParticipants();
         } catch (error) {
             message.error('Erreur lors de la sauvegarde du participant');
-        }
-    };
-
-    const getStatusColor = (status) => {
-        switch (status) {
-            case 'en attente':
-                return 'orange';
-            case 'payé':
-                return 'green';
-            case 'annulé':
-                return 'red';
-            case 'remboursé':
-                return 'blue';
-            default:
-                return 'default';
         }
     };
 
@@ -99,11 +85,6 @@ const ParticipantList = () => {
             key: 'telephone',
         },
         {
-            title: 'Formation',
-            dataIndex: ['formation', 'titre'],
-            key: 'formation',
-        },
-        {
             title: 'Niveau d\'étude',
             dataIndex: 'niveau_etude',
             key: 'niveau_etude',
@@ -113,8 +94,13 @@ const ParticipantList = () => {
             dataIndex: 'statut_paiement',
             key: 'statut_paiement',
             render: (status) => (
-                <Tag color={getStatusColor(status)}>
-                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                <Tag color={
+                    status === 'en attente' ? 'orange' :
+                    status === 'payé' ? 'green' :
+                    status === 'annulé' ? 'red' :
+                    'blue'
+                }>
+                    {status}
                 </Tag>
             ),
         },
@@ -127,16 +113,13 @@ const ParticipantList = () => {
                         type="primary"
                         icon={<EditOutlined />}
                         onClick={() => handleEdit(record)}
-                    >
-                        Modifier
-                    </Button>
+                    />
                     <Button
+                        type="primary"
                         danger
                         icon={<DeleteOutlined />}
                         onClick={() => handleDelete(record.id)}
-                    >
-                        Supprimer
-                    </Button>
+                    />
                 </Space>
             ),
         },
@@ -163,15 +146,15 @@ const ParticipantList = () => {
             />
 
             <Modal
-                title={editingParticipant ? 'Modifier le participant' : 'Nouveau participant'}
-                open={modalVisible}
+                title={selectedParticipant ? 'Modifier le participant' : 'Ajouter un participant'}
+                visible={modalVisible}
                 onCancel={() => setModalVisible(false)}
                 footer={null}
                 width={800}
             >
                 <ParticipantForm
-                    initialValues={editingParticipant}
-                    onFinish={handleSave}
+                    initialValues={selectedParticipant}
+                    onFinish={handleSubmit}
                     onCancel={() => setModalVisible(false)}
                 />
             </Modal>

@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Participant extends Model
 {
@@ -23,7 +23,6 @@ class Participant extends Model
         'date_naissance',
         'niveau_etude',
         'attentes',
-        'formation_id',
         'statut_paiement'
     ];
 
@@ -36,12 +35,15 @@ class Participant extends Model
         'date_naissance' => 'date'
     ];
 
-    /**
-     * Get the formation that owns the participant.
-     */
-    public function formation()
+    protected $attributes = [
+        'statut_paiement' => 'en attente',
+    ];
+
+    public function formations(): BelongsToMany
     {
-        return $this->belongsTo(Formation::class);
+        return $this->belongsToMany(Formation::class, 'formation_participant')
+            ->withPivot('statut', 'date_inscription')
+            ->withTimestamps();
     }
 
     public function getFullNameAttribute()

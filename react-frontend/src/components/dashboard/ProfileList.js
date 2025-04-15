@@ -18,7 +18,6 @@ const ProfileList = () => {
         setLoading(true);
         try {
             const response = await api.get('/profiles');
-            // Transformer les données pour afficher correctement les informations de l'utilisateur
             const formattedProfiles = response.data.map(profile => ({
                 ...profile,
                 nom: profile.user ? profile.user.name : 'N/A',
@@ -41,7 +40,6 @@ const ProfileList = () => {
     };
 
     const handleEdit = (profile) => {
-        // Préparer les données pour le formulaire
         const profileData = {
             id: profile.id,
             name: profile.nom,

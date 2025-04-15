@@ -29,7 +29,10 @@ class Formation extends Model
         'statut',
         'formateur_id',
         'ville_id',
-        'filiere_id'
+        'filiere_id',
+        'validation_status',
+        'validated_by',
+        'validated_at'
     ];
 
     /**
@@ -41,8 +44,13 @@ class Formation extends Model
         'date_debut' => 'datetime',
         'date_fin' => 'datetime',
         'duree' => 'integer',
-        'prix' => 'decimal:2',
-        'places_disponibles' => 'integer'
+        'prix' => 'float',
+        'places_disponibles' => 'integer',
+        'validated_at' => 'datetime'
+    ];
+
+    protected $attributes = [
+        'statut' => 'en attente'
     ];
 
     /**
@@ -70,6 +78,14 @@ class Formation extends Model
     }
 
     /**
+     * Get the validator that owns the formation.
+     */
+    public function validator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'validated_by');
+    }
+
+    /**
      * Get the participants for the formation.
      */
     public function participants(): BelongsToMany
@@ -77,5 +93,46 @@ class Formation extends Model
         return $this->belongsToMany(Participant::class, 'formation_participant')
             ->withPivot('statut', 'date_inscription')
             ->withTimestamps();
+    }
+
+    public function scopePendingValidation($query)
+    {
+        return $query->where('validation_status', 'en attente');
+    }
+
+    public function scopeValidated($query)
+    {
+        return $query->where('validation_status', 'validé');
+    }
+
+    public function scopeRejected($query)
+    {
+        return $query->where('validation_status', 'rejeté');
+    }
+
+    public function validate(User $validator)
+    {
+        if ($validator->role !== 'admin') {
+            throw new \Exception('Seuls les administrateurs peuvent valider les formations');
+        }
+
+        $this->update([
+            'validation_status' => 'validé',
+            'validated_by' => $validator->id,
+            'validated_at' => now()
+        ]);
+    }
+
+    public function reject(User $validator, string $reason = null)
+    {
+        if ($validator->role !== 'admin') {
+            throw new \Exception('Seuls les administrateurs peuvent rejeter les formations');
+        }
+
+        $this->update([
+            'validation_status' => 'rejeté',
+            'validated_by' => $validator->id,
+            'validated_at' => now()
+        ]);
     }
 }

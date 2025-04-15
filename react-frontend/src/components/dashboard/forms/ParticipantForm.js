@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Form, Input, Select, DatePicker, Button, Space, Tooltip, Typography } from 'antd';
+import { Form, Input, Select, DatePicker, Button, Space, Tooltip, Typography, message } from 'antd';
 import { InfoCircleOutlined } from '@ant-design/icons';
 import api from '../../../services/api';
 import moment from 'moment';
@@ -7,58 +7,30 @@ import './ParticipantForm.css';
 
 const { TextArea } = Input;
 const { Text } = Typography;
+const { Option } = Select;
 
 const ParticipantForm = ({ initialValues, onFinish, onCancel }) => {
     const [form] = Form.useForm();
-    const [formations, setFormations] = useState([]);
     const [loading, setLoading] = useState(false);
     const [formErrors, setFormErrors] = useState({});
-    const [formationsLoading, setFormationsLoading] = useState(false);
-    const [formationsError, setFormationsError] = useState(null);
 
     useEffect(() => {
-        fetchFormations();
         if (initialValues) {
             const formattedValues = {
                 ...initialValues,
-                date_naissance: initialValues.date_naissance ? moment(initialValues.date_naissance) : null,
+                date_naissance: initialValues.date_naissance ? moment(initialValues.date_naissance) : null
             };
             form.setFieldsValue(formattedValues);
         }
     }, [initialValues, form]);
 
-    const fetchFormations = async () => {
-        setFormationsLoading(true);
-        setFormationsError(null);
-        try {
-            const response = await api.get('/formations');
-            if (response.data && Array.isArray(response.data)) {
-                setFormations(response.data);
-            } else {
-                setFormationsError('Format de données invalide');
-                console.error('Format de données invalide:', response.data);
-            }
-        } catch (error) {
-            setFormationsError('Erreur lors du chargement des formations');
-            console.error('Erreur lors du chargement des formations:', error);
-        } finally {
-            setFormationsLoading(false);
-        }
-    };
-
     const handleSubmit = async (values) => {
         setLoading(true);
         setFormErrors({});
         try {
-            const formattedValues = {
-                ...values,
-                date_naissance: values.date_naissance?.format('YYYY-MM-DD'),
-            };
-            await onFinish(formattedValues);
+            await onFinish(values);
         } catch (error) {
-            if (error.response?.data?.errors) {
-                setFormErrors(error.response.data.errors);
-            }
+            message.error('Erreur lors de la sauvegarde');
         } finally {
             setLoading(false);
         }
@@ -169,36 +141,12 @@ const ParticipantForm = ({ initialValues, onFinish, onCancel }) => {
                 help={formErrors.niveau_etude}
             >
                 <Select placeholder="Sélectionnez le niveau d'étude">
-                    <Select.Option value="Bac">Bac</Select.Option>
-                    <Select.Option value="Bac+2">Bac+2</Select.Option>
-                    <Select.Option value="Bac+3">Bac+3</Select.Option>
-                    <Select.Option value="Bac+4">Bac+4</Select.Option>
-                    <Select.Option value="Bac+5">Bac+5</Select.Option>
-                    <Select.Option value="Doctorat">Doctorat</Select.Option>
-                </Select>
-            </Form.Item>
-
-            <Form.Item
-                name="formation_id"
-                label="Formation"
-                rules={[{ required: true, message: 'La formation est requise' }]}
-                validateStatus={formErrors.formation_id ? 'error' : ''}
-                help={formErrors.formation_id || formationsError}
-            >
-                <Select 
-                    placeholder="Sélectionnez une formation"
-                    showSearch
-                    loading={formationsLoading}
-                    optionFilterProp="children"
-                    filterOption={(input, option) =>
-                        option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-                    }
-                >
-                    {formations.map(formation => (
-                        <Select.Option key={formation.id} value={formation.id}>
-                            {formation.titre}
-                        </Select.Option>
-                    ))}
+                    <Option value="Bac">Bac</Option>
+                    <Option value="Bac+2">Bac+2</Option>
+                    <Option value="Bac+3">Bac+3</Option>
+                    <Option value="Bac+4">Bac+4</Option>
+                    <Option value="Bac+5">Bac+5</Option>
+                    <Option value="Doctorat">Doctorat</Option>
                 </Select>
             </Form.Item>
 
@@ -224,10 +172,10 @@ const ParticipantForm = ({ initialValues, onFinish, onCancel }) => {
                 help={formErrors.statut_paiement}
             >
                 <Select placeholder="Sélectionnez le statut du paiement">
-                    <Select.Option value="en attente">En attente</Select.Option>
-                    <Select.Option value="payé">Payé</Select.Option>
-                    <Select.Option value="annulé">Annulé</Select.Option>
-                    <Select.Option value="remboursé">Remboursé</Select.Option>
+                    <Option value="en attente">En attente</Option>
+                    <Option value="payé">Payé</Option>
+                    <Option value="annulé">Annulé</Option>
+                    <Option value="remboursé">Remboursé</Option>
                 </Select>
             </Form.Item>
 
