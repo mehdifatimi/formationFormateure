@@ -12,6 +12,7 @@ use App\Http\Controllers\FormationController;
 use App\Http\Controllers\AnimateurController;
 use App\Http\Controllers\ParticipantController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\FormateurController;
 
 /*
 |--------------------------------------------------------------------------
@@ -43,6 +44,7 @@ Route::apiResource('filieres', FiliereController::class);
 Route::apiResource('formations', FormationController::class);
 Route::apiResource('animateurs', AnimateurController::class);
 Route::apiResource('participants', ParticipantController::class);
+Route::apiResource('formateurs', FormateurController::class);
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();

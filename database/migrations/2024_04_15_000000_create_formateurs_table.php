@@ -6,9 +6,6 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('formateurs', function (Blueprint $table) {
@@ -17,7 +14,7 @@ return new class extends Migration
             $table->string('prenom');
             $table->string('email')->unique();
             $table->string('telephone');
-            $table->text('specialites');
+            $table->json('specialites');
             $table->text('bio');
             $table->string('photo')->nullable();
             $table->string('linkedin')->nullable();
@@ -26,11 +23,8 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('formateurs');
     }
-};
+}; 

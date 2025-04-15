@@ -8,20 +8,23 @@ class FormationController extends Controller
 {
     public function index()
     {
-        $formations = Formation::with(['ville', 'animateur', 'participants'])->get();
+        $formations = Formation::with(['formateur', 'participants'])->get();
         return response()->json($formations);
     }
 
     public function store(Request $request)
     {
         $request->validate([
-            'title' => 'required',
-            'description' => 'required',
-            'dateDebut' => 'required|date',
-            'dateFin' => 'required|date|after:dateDebut',
-            'idAnimateur' => 'required|exists:animateurs,idAnimateur',
-            'idVille' => 'required|exists:villes,idVille',
-            'status' => 'required'
+            'titre' => 'required|string|max:255',
+            'description' => 'required|string',
+            'date_debut' => 'required|date',
+            'date_fin' => 'required|date|after:date_debut',
+            'duree' => 'required|integer|min:1',
+            'niveau' => 'required|string|in:débutant,intermédiaire,avancé',
+            'prix' => 'required|numeric|min:0',
+            'places_disponibles' => 'required|integer|min:1',
+            'statut' => 'required|string|in:à venir,en cours,terminé,annulé',
+            'formateur_id' => 'required|exists:formateurs,id'
         ]);
 
         $formation = Formation::create($request->all());

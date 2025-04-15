@@ -8,13 +8,20 @@ return new class extends Migration
 {
     public function up(): void
     {
+        Schema::dropIfExists('formations');
+
         Schema::create('formations', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('ville_id')->constrained()->onDelete('cascade');
-            $table->foreignId('filiere_id')->constrained()->onDelete('cascade');
-            $table->foreignId('animateur_id')->constrained()->onDelete('cascade');
+            $table->string('titre');
+            $table->text('description');
             $table->dateTime('date_debut');
             $table->dateTime('date_fin');
+            $table->integer('duree');
+            $table->string('niveau');
+            $table->decimal('prix', 10, 2);
+            $table->integer('places_disponibles');
+            $table->string('statut');
+            $table->foreignId('formateur_id')->constrained()->onDelete('cascade');
             $table->timestamps();
         });
     }
@@ -24,4 +31,3 @@ return new class extends Migration
         Schema::dropIfExists('formations');
     }
 }; 
-

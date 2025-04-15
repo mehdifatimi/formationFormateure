@@ -1,101 +1,101 @@
-import React, { useState } from 'react';
-import { Form, Input, Switch, Button, Space, Select } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
+import React from 'react';
+import { Form, Input, Button, Switch, Select, Space } from 'antd';
 
 const { TextArea } = Input;
+const { Option } = Select;
+
+const specialites = [
+    'Développement Web',
+    'Design UX/UI',
+    'Marketing Digital',
+    'Gestion de Projet',
+    'Data Science',
+    'DevOps',
+    'Cybersécurité',
+    'Intelligence Artificielle'
+];
 
 const FormateurForm = ({ initialValues, onFinish, onCancel }) => {
     const [form] = Form.useForm();
-    const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (values) => {
-        setLoading(true);
-        try {
-            await onFinish(values);
-        } finally {
-            setLoading(false);
+        // S'assurer que les spécialités sont envoyées comme un tableau
+        const formData = {
+            ...values,
+            specialites: Array.isArray(values.specialites) ? values.specialites : []
+        };
+        
+        // Ajouter des valeurs par défaut pour les champs manquants
+        if (!formData.disponible) {
+            formData.disponible = true;
         }
+        
+        console.log('Données envoyées au serveur:', formData);
+        await onFinish(formData);
     };
-
-    const specialites = [
-        'Développement Web',
-        'Développement Mobile',
-        'DevOps',
-        'Base de données',
-        'Cloud Computing',
-        'Intelligence Artificielle',
-        'Cybersécurité',
-        'UX/UI Design',
-        'Gestion de Projet',
-        'Agilité',
-    ];
 
     return (
         <Form
             form={form}
             layout="vertical"
-            onFinish={handleSubmit}
             initialValues={{
                 ...initialValues,
-                disponible: initialValues?.disponible ?? true,
-                specialites: initialValues?.specialites ?? [],
+                specialites: initialValues?.specialites ? 
+                    (typeof initialValues.specialites === 'string' ? 
+                        JSON.parse(initialValues.specialites) : 
+                        initialValues.specialites) : 
+                    [],
+                disponible: initialValues?.disponible !== undefined ? initialValues.disponible : true
             }}
+            onFinish={handleSubmit}
         >
-            <Space size="large" style={{ display: 'flex', marginBottom: 8 }}>
-                <Form.Item
-                    name="prenom"
-                    label="Prénom"
-                    rules={[{ required: true, message: 'Le prénom est requis' }]}
-                >
-                    <Input />
-                </Form.Item>
+            <Form.Item
+                name="nom"
+                label="Nom"
+                rules={[{ required: true, message: 'Veuillez entrer le nom' }]}
+            >
+                <Input />
+            </Form.Item>
 
-                <Form.Item
-                    name="nom"
-                    label="Nom"
-                    rules={[{ required: true, message: 'Le nom est requis' }]}
-                >
-                    <Input />
-                </Form.Item>
-            </Space>
+            <Form.Item
+                name="prenom"
+                label="Prénom"
+                rules={[{ required: true, message: 'Veuillez entrer le prénom' }]}
+            >
+                <Input />
+            </Form.Item>
 
-            <Space size="large" style={{ display: 'flex', marginBottom: 8 }}>
-                <Form.Item
-                    name="email"
-                    label="Email"
-                    rules={[
-                        { required: true, message: 'L\'email est requis' },
-                        { type: 'email', message: 'Email invalide' }
-                    ]}
-                >
-                    <Input />
-                </Form.Item>
+            <Form.Item
+                name="email"
+                label="Email"
+                rules={[
+                    { required: true, message: 'Veuillez entrer l\'email' },
+                    { type: 'email', message: 'Email invalide' }
+                ]}
+            >
+                <Input />
+            </Form.Item>
 
-                <Form.Item
-                    name="telephone"
-                    label="Téléphone"
-                    rules={[{ required: true, message: 'Le téléphone est requis' }]}
-                >
-                    <Input />
-                </Form.Item>
-            </Space>
+            <Form.Item
+                name="telephone"
+                label="Téléphone"
+                rules={[{ required: true, message: 'Veuillez entrer le numéro de téléphone' }]}
+            >
+                <Input />
+            </Form.Item>
 
             <Form.Item
                 name="specialites"
                 label="Spécialités"
-                rules={[{ required: true, message: 'Au moins une spécialité est requise' }]}
+                rules={[{ required: true, message: 'Veuillez sélectionner au moins une spécialité' }]}
             >
                 <Select
                     mode="multiple"
-                    style={{ width: '100%' }}
                     placeholder="Sélectionnez les spécialités"
-                    optionLabelProp="label"
-                    allowClear
+                    style={{ width: '100%' }}
                 >
-                    {specialites.map(specialite => (
-                        <Select.Option key={specialite} value={specialite} label={specialite}>
-                            {specialite}
-                        </Select.Option>
+                    {specialites.map(spec => (
+                        <Option key={spec} value={spec}>{spec}</Option>
                     ))}
                 </Select>
             </Form.Item>
@@ -103,26 +103,17 @@ const FormateurForm = ({ initialValues, onFinish, onCancel }) => {
             <Form.Item
                 name="bio"
                 label="Biographie"
-                rules={[{ required: true, message: 'La biographie est requise' }]}
+                rules={[{ required: true, message: 'Veuillez entrer la biographie' }]}
             >
                 <TextArea rows={4} />
             </Form.Item>
 
-            <Space size="large" style={{ display: 'flex', marginBottom: 8 }}>
-                <Form.Item
-                    name="photo"
-                    label="Photo (URL)"
-                >
-                    <Input placeholder="http://..." />
-                </Form.Item>
-
-                <Form.Item
-                    name="linkedin"
-                    label="LinkedIn"
-                >
-                    <Input placeholder="https://linkedin.com/in/..." />
-                </Form.Item>
-            </Space>
+            <Form.Item
+                name="linkedin"
+                label="LinkedIn"
+            >
+                <Input />
+            </Form.Item>
 
             <Form.Item
                 name="disponible"
@@ -134,10 +125,12 @@ const FormateurForm = ({ initialValues, onFinish, onCancel }) => {
 
             <Form.Item>
                 <Space>
-                    <Button type="primary" htmlType="submit" loading={loading}>
+                    <Button type="primary" htmlType="submit">
                         {initialValues ? 'Mettre à jour' : 'Créer'}
                     </Button>
-                    <Button onClick={onCancel}>Annuler</Button>
+                    <Button onClick={onCancel}>
+                        Annuler
+                    </Button>
                 </Space>
             </Form.Item>
         </Form>

@@ -26,6 +26,37 @@ class Formateur extends Model
         'specialites' => 'array'
     ];
 
+    /**
+     * Définir un mutateur pour s'assurer que specialites est toujours un tableau
+     */
+    public function setSpecialitesAttribute($value)
+    {
+        if (is_string($value)) {
+            try {
+                $this->attributes['specialites'] = json_encode(json_decode($value, true));
+            } catch (\Exception $e) {
+                $this->attributes['specialites'] = json_encode([$value]);
+            }
+        } else {
+            $this->attributes['specialites'] = json_encode($value);
+        }
+    }
+
+    /**
+     * Définir un accesseur pour s'assurer que specialites est toujours un tableau
+     */
+    public function getSpecialitesAttribute($value)
+    {
+        if (is_string($value)) {
+            try {
+                return json_decode($value, true);
+            } catch (\Exception $e) {
+                return [$value];
+            }
+        }
+        return $value;
+    }
+
     public function formations()
     {
         return $this->hasMany(Formation::class);

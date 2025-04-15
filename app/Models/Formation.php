@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Formation extends Model
 {
@@ -35,9 +36,11 @@ class Formation extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'date_debut' => 'date',
-        'date_fin' => 'date',
-        'prix' => 'decimal:2'
+        'date_debut' => 'datetime',
+        'date_fin' => 'datetime',
+        'duree' => 'integer',
+        'prix' => 'decimal:2',
+        'places_disponibles' => 'integer'
     ];
 
     /**
@@ -51,8 +54,10 @@ class Formation extends Model
     /**
      * Get the participants for the formation.
      */
-    public function participants(): HasMany
+    public function participants(): BelongsToMany
     {
-        return $this->hasMany(Participant::class);
+        return $this->belongsToMany(Participant::class, 'formation_participant')
+            ->withPivot('statut', 'date_inscription')
+            ->withTimestamps();
     }
 }
