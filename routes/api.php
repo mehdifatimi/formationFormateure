@@ -13,6 +13,7 @@ use App\Http\Controllers\AnimateurController;
 use App\Http\Controllers\ParticipantController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\FormateurController;
+use App\Http\Controllers\ProfilController;
 
 /*
 |--------------------------------------------------------------------------
@@ -45,6 +46,10 @@ Route::apiResource('formations', FormationController::class);
 Route::apiResource('animateurs', AnimateurController::class);
 Route::apiResource('participants', ParticipantController::class);
 Route::apiResource('formateurs', FormateurController::class);
+Route::apiResource('profiles', ProfilController::class);
+
+// Profile status update route
+Route::put('profiles/{profil}/status', [ProfilController::class, 'updateStatus']);
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();

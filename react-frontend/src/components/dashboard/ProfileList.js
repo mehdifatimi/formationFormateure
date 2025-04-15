@@ -18,8 +18,17 @@ const ProfileList = () => {
         setLoading(true);
         try {
             const response = await api.get('/profiles');
-            setProfiles(response.data);
+            // Transformer les données pour afficher correctement les informations de l'utilisateur
+            const formattedProfiles = response.data.map(profile => ({
+                ...profile,
+                nom: profile.user ? profile.user.name : 'N/A',
+                email: profile.user ? profile.user.email : 'N/A',
+                role: profile.user ? profile.user.role : 'user',
+                status: profile.status || 'actif'
+            }));
+            setProfiles(formattedProfiles);
         } catch (error) {
+            console.error('Erreur lors du chargement des profils:', error);
             message.error('Erreur lors du chargement des profils');
         } finally {
             setLoading(false);
@@ -32,7 +41,14 @@ const ProfileList = () => {
     };
 
     const handleEdit = (profile) => {
-        setEditingProfile(profile);
+        // Préparer les données pour le formulaire
+        const profileData = {
+            id: profile.id,
+            name: profile.nom,
+            description: profile.bio,
+            permissions: profile.preferences?.permissions || []
+        };
+        setEditingProfile(profileData);
         setModalVisible(true);
     };
 
@@ -42,6 +58,7 @@ const ProfileList = () => {
             message.success('Profil supprimé avec succès');
             fetchProfiles();
         } catch (error) {
+            console.error('Erreur lors de la suppression du profil:', error);
             message.error('Erreur lors de la suppression du profil');
         }
     };
@@ -52,6 +69,7 @@ const ProfileList = () => {
             message.success('Statut du profil mis à jour avec succès');
             fetchProfiles();
         } catch (error) {
+            console.error('Erreur lors de la mise à jour du statut:', error);
             message.error('Erreur lors de la mise à jour du statut');
         }
     };
@@ -68,6 +86,7 @@ const ProfileList = () => {
             setModalVisible(false);
             fetchProfiles();
         } catch (error) {
+            console.error('Erreur lors de la sauvegarde du profil:', error);
             message.error('Erreur lors de la sauvegarde du profil');
         }
     };
@@ -156,8 +175,11 @@ const ProfileList = () => {
                 width={800}
             >
                 <ProfileForm
-                    initialValues={editingProfile}
-                    onFinish={handleSave}
+                    profile={editingProfile}
+                    onSuccess={() => {
+                        setModalVisible(false);
+                        fetchProfiles();
+                    }}
                     onCancel={() => setModalVisible(false)}
                 />
             </Modal>
