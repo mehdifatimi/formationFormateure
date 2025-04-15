@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Space, Modal, message } from 'antd';
-import { EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
+import { Table, Button, Space, Modal, message, Tag, Popover } from 'antd';
+import { EditOutlined, DeleteOutlined, PlusOutlined, UserOutlined } from '@ant-design/icons';
 import FormationForm from './forms/FormationForm';
 import api from '../../services/api';
 
@@ -61,6 +61,32 @@ const FormationList = () => {
         }
     };
 
+    const renderParticipants = (participants) => {
+        if (!participants || participants.length === 0) {
+            return <span>Aucun participant</span>;
+        }
+
+        const content = (
+            <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                {participants.map(participant => (
+                    <div key={participant.id} style={{ marginBottom: '8px' }}>
+                        <Tag color="blue">
+                            {participant.prenom} {participant.nom}
+                        </Tag>
+                    </div>
+                ))}
+            </div>
+        );
+
+        return (
+            <Popover content={content} title="Participants" trigger="click">
+                <Button type="primary" icon={<UserOutlined />}>
+                    {participants.length} participant(s)
+                </Button>
+            </Popover>
+        );
+    };
+
     const columns = [
         {
             title: 'Titre',
@@ -92,6 +118,11 @@ const FormationList = () => {
             title: 'Statut',
             dataIndex: 'statut',
             key: 'statut',
+        },
+        {
+            title: 'Participants',
+            key: 'participants',
+            render: (_, record) => renderParticipants(record.participants),
         },
         {
             title: 'Actions',

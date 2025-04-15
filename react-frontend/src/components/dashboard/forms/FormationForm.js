@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Form, Input, DatePicker, InputNumber, Select, Button, Space } from 'antd';
+import { Form, Input, DatePicker, InputNumber, Select, Button, Space, Tag } from 'antd';
 import api from '../../../services/api';
 import moment from 'moment';
 
@@ -11,17 +11,20 @@ const FormationForm = ({ initialValues, onFinish, onCancel }) => {
     const [formateurs, setFormateurs] = useState([]);
     const [villes, setVilles] = useState([]);
     const [filieres, setFilieres] = useState([]);
+    const [participants, setParticipants] = useState([]);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         fetchFormateurs();
         fetchVilles();
         fetchFilieres();
+        fetchParticipants();
         if (initialValues) {
             form.setFieldsValue({
                 ...initialValues,
                 date_debut: moment(initialValues.date_debut),
                 date_fin: moment(initialValues.date_fin),
+                participants: initialValues.participants?.map(p => p.id) || []
             });
         }
     }, [initialValues, form]);
@@ -53,6 +56,15 @@ const FormationForm = ({ initialValues, onFinish, onCancel }) => {
         }
     };
 
+    const fetchParticipants = async () => {
+        try {
+            const response = await api.get('/participants');
+            setParticipants(response.data);
+        } catch (error) {
+            console.error('Erreur lors du chargement des participants:', error);
+        }
+    };
+
     const handleSubmit = async (values) => {
         setLoading(true);
         try {
@@ -60,10 +72,20 @@ const FormationForm = ({ initialValues, onFinish, onCancel }) => {
                 ...values,
                 date_debut: values.date_debut.format('YYYY-MM-DD'),
                 date_fin: values.date_fin.format('YYYY-MM-DD'),
+                participants: values.participants || []
             });
         } finally {
             setLoading(false);
         }
+    };
+
+    const tagRender = (props) => {
+        const { label, closable, onClose } = props;
+        return (
+            <Tag closable={closable} onClose={onClose} style={{ marginRight: 3 }}>
+                {label}
+            </Tag>
+        );
     };
 
     return (
@@ -73,7 +95,8 @@ const FormationForm = ({ initialValues, onFinish, onCancel }) => {
             onFinish={handleSubmit}
             initialValues={{
                 statut: 'à venir',
-                niveau: 'débutant'
+                niveau: 'débutant',
+                participants: []
             }}
         >
             <Form.Item
@@ -207,6 +230,29 @@ const FormationForm = ({ initialValues, onFinish, onCancel }) => {
                     <Option value="en cours">En cours</Option>
                     <Option value="terminé">Terminé</Option>
                     <Option value="annulé">Annulé</Option>
+                </Select>
+            </Form.Item>
+
+            <Form.Item
+                name="participants"
+                label="Participants"
+            >
+                <Select
+                    mode="multiple"
+                    style={{ width: '100%' }}
+                    placeholder="Sélectionnez les participants"
+                    tagRender={tagRender}
+                    optionLabelProp="label"
+                >
+                    {participants.map(participant => (
+                        <Option 
+                            key={participant.id} 
+                            value={participant.id}
+                            label={`${participant.prenom} ${participant.nom}`}
+                        >
+                            {participant.prenom} {participant.nom}
+                        </Option>
+                    ))}
                 </Select>
             </Form.Item>
 

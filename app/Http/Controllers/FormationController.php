@@ -3,6 +3,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Formation;
 use App\Models\User;
+use App\Models\Participant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
@@ -33,6 +34,9 @@ class FormationController extends Controller
                     },
                     'filiere' => function($query) {
                         $query->select('id', 'nom');
+                    },
+                    'participants' => function($query) {
+                        $query->select('participants.id', 'participants.nom', 'participants.prenom');
                     }
                 ])
                 ->get();
@@ -87,7 +91,9 @@ class FormationController extends Controller
                 'statut' => 'required|string|in:en attente,en cours,terminée,annulée,à venir',
                 'formateur_id' => 'required|exists:formateurs,id',
                 'ville_id' => 'required|exists:villes,id',
-                'filiere_id' => 'required|exists:filieres,id'
+                'filiere_id' => 'required|exists:filieres,id',
+                'participants' => 'nullable|array',
+                'participants.*' => 'exists:participants,id'
             ], [
                 'titre.required' => 'Le titre est requis',
                 'description.required' => 'La description est requise',
@@ -110,7 +116,9 @@ class FormationController extends Controller
                 'ville_id.required' => 'La ville est requise',
                 'ville_id.exists' => 'La ville sélectionnée n\'existe pas',
                 'filiere_id.required' => 'La filière est requise',
-                'filiere_id.exists' => 'La filière sélectionnée n\'existe pas'
+                'filiere_id.exists' => 'La filière sélectionnée n\'existe pas',
+                'participants.array' => 'Les participants doivent être fournis sous forme de tableau',
+                'participants.*.exists' => 'Un ou plusieurs participants sélectionnés n\'existent pas'
             ]);
 
             // Ajouter le statut de validation par défaut
@@ -135,10 +143,18 @@ class FormationController extends Controller
             // Créer la formation
             $formation = Formation::create($validated);
 
+            // Attacher les participants si fournis
+            if (isset($validated['participants']) && is_array($validated['participants'])) {
+                $formation->participants()->attach($validated['participants'], [
+                    'statut' => 'en attente',
+                    'date_inscription' => now()
+                ]);
+            }
+
             Log::info('Formation créée avec succès', ['formation' => $formation->toArray()]);
 
             DB::commit();
-            return response()->json($formation, 201);
+            return response()->json($formation->load('participants'), 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
             DB::rollBack();
             Log::error('Erreur de validation lors de la création de la formation', [

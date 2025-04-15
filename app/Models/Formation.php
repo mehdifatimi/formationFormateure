@@ -50,7 +50,8 @@ class Formation extends Model
     ];
 
     protected $attributes = [
-        'statut' => 'en attente'
+        'statut' => 'en attente',
+        'validation_status' => 'en attente'
     ];
 
     /**
