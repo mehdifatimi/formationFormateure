@@ -9,10 +9,14 @@ const { Option } = Select;
 const FormationForm = ({ initialValues, onFinish, onCancel }) => {
     const [form] = Form.useForm();
     const [formateurs, setFormateurs] = useState([]);
+    const [villes, setVilles] = useState([]);
+    const [filieres, setFilieres] = useState([]);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         fetchFormateurs();
+        fetchVilles();
+        fetchFilieres();
         if (initialValues) {
             form.setFieldsValue({
                 ...initialValues,
@@ -28,6 +32,24 @@ const FormationForm = ({ initialValues, onFinish, onCancel }) => {
             setFormateurs(response.data);
         } catch (error) {
             console.error('Erreur lors du chargement des formateurs:', error);
+        }
+    };
+
+    const fetchVilles = async () => {
+        try {
+            const response = await api.get('/villes');
+            setVilles(response.data);
+        } catch (error) {
+            console.error('Erreur lors du chargement des villes:', error);
+        }
+    };
+
+    const fetchFilieres = async () => {
+        try {
+            const response = await api.get('/filieres');
+            setFilieres(response.data);
+        } catch (error) {
+            console.error('Erreur lors du chargement des filières:', error);
         }
     };
 
@@ -147,18 +169,46 @@ const FormationForm = ({ initialValues, onFinish, onCancel }) => {
                 </Form.Item>
 
                 <Form.Item
-                    name="statut"
-                    label="Statut"
-                    rules={[{ required: true, message: 'Le statut est requis' }]}
+                    name="ville_id"
+                    label="Ville"
+                    rules={[{ required: true, message: 'La ville est requise' }]}
                 >
                     <Select style={{ width: 200 }}>
-                        <Option value="à venir">À venir</Option>
-                        <Option value="en cours">En cours</Option>
-                        <Option value="terminé">Terminé</Option>
-                        <Option value="annulé">Annulé</Option>
+                        {villes.map(ville => (
+                            <Option key={ville.id} value={ville.id}>
+                                {ville.nom}
+                            </Option>
+                        ))}
+                    </Select>
+                </Form.Item>
+
+                <Form.Item
+                    name="filiere_id"
+                    label="Filière"
+                    rules={[{ required: true, message: 'La filière est requise' }]}
+                >
+                    <Select style={{ width: 200 }}>
+                        {filieres.map(filiere => (
+                            <Option key={filiere.id} value={filiere.id}>
+                                {filiere.nom}
+                            </Option>
+                        ))}
                     </Select>
                 </Form.Item>
             </Space>
+
+            <Form.Item
+                name="statut"
+                label="Statut"
+                rules={[{ required: true, message: 'Le statut est requis' }]}
+            >
+                <Select style={{ width: 200 }}>
+                    <Option value="à venir">À venir</Option>
+                    <Option value="en cours">En cours</Option>
+                    <Option value="terminé">Terminé</Option>
+                    <Option value="annulé">Annulé</Option>
+                </Select>
+            </Form.Item>
 
             <Form.Item>
                 <Space>

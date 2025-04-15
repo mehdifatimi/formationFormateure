@@ -24,6 +24,12 @@ class FormationFactory extends Factory
             'formateur_id' => function () {
                 return \App\Models\Formateur::inRandomOrder()->first()->id ?? \App\Models\Formateur::factory()->create()->id;
             },
+            'ville_id' => function () {
+                return \App\Models\Ville::inRandomOrder()->first()->id ?? \App\Models\Ville::factory()->create()->id;
+            },
+            'filiere_id' => function () {
+                return \App\Models\Filiere::inRandomOrder()->first()->id ?? \App\Models\Filiere::factory()->create()->id;
+            },
         ];
     }
 } 

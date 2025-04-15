@@ -35,5 +35,13 @@ class DatabaseSeeder extends Seeder
         User::factory(20)
             ->has(Profil::factory())
             ->create();
+
+        // Run additional seeders in the correct order
+        $this->call([
+            RegionSeeder::class,
+            VilleSeeder::class,
+            CDCSeeder::class,
+            FiliereSeeder::class,
+        ]);
     }
 }

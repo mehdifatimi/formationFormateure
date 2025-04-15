@@ -6,10 +6,11 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * Run the migrations.
+     */
     public function up(): void
     {
-        Schema::dropIfExists('formations');
-
         Schema::create('formations', function (Blueprint $table) {
             $table->id();
             $table->string('titre');
@@ -20,12 +21,17 @@ return new class extends Migration
             $table->string('niveau');
             $table->decimal('prix', 10, 2);
             $table->integer('places_disponibles');
-            $table->string('statut');
+            $table->string('statut')->default('en cours');
             $table->foreignId('formateur_id')->constrained()->onDelete('cascade');
+            $table->foreignId('ville_id')->constrained()->onDelete('cascade');
+            $table->foreignId('filiere_id')->constrained()->onDelete('cascade');
             $table->timestamps();
         });
     }
 
+    /**
+     * Reverse the migrations.
+     */
     public function down(): void
     {
         Schema::dropIfExists('formations');

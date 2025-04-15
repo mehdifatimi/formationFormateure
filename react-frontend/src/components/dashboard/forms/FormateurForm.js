@@ -111,8 +111,11 @@ const FormateurForm = ({ initialValues, onFinish, onCancel }) => {
             <Form.Item
                 name="linkedin"
                 label="LinkedIn"
+                rules={[
+                    { type: 'url', message: 'Veuillez entrer une URL LinkedIn valide' }
+                ]}
             >
-                <Input />
+                <Input placeholder="https://www.linkedin.com/in/votre-profil" />
             </Form.Item>
 
             <Form.Item

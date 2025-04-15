@@ -39,7 +39,7 @@ class Participant extends Model
     /**
      * Get the formation that owns the participant.
      */
-    public function formation(): BelongsTo
+    public function formation()
     {
         return $this->belongsTo(Formation::class);
     }

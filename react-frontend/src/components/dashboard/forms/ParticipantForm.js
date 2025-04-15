@@ -13,6 +13,8 @@ const ParticipantForm = ({ initialValues, onFinish, onCancel }) => {
     const [formations, setFormations] = useState([]);
     const [loading, setLoading] = useState(false);
     const [formErrors, setFormErrors] = useState({});
+    const [formationsLoading, setFormationsLoading] = useState(false);
+    const [formationsError, setFormationsError] = useState(null);
 
     useEffect(() => {
         fetchFormations();
@@ -26,11 +28,21 @@ const ParticipantForm = ({ initialValues, onFinish, onCancel }) => {
     }, [initialValues, form]);
 
     const fetchFormations = async () => {
+        setFormationsLoading(true);
+        setFormationsError(null);
         try {
             const response = await api.get('/formations');
-            setFormations(response.data);
+            if (response.data && Array.isArray(response.data)) {
+                setFormations(response.data);
+            } else {
+                setFormationsError('Format de données invalide');
+                console.error('Format de données invalide:', response.data);
+            }
         } catch (error) {
+            setFormationsError('Erreur lors du chargement des formations');
             console.error('Erreur lors du chargement des formations:', error);
+        } finally {
+            setFormationsLoading(false);
         }
     };
 
@@ -171,11 +183,12 @@ const ParticipantForm = ({ initialValues, onFinish, onCancel }) => {
                 label="Formation"
                 rules={[{ required: true, message: 'La formation est requise' }]}
                 validateStatus={formErrors.formation_id ? 'error' : ''}
-                help={formErrors.formation_id}
+                help={formErrors.formation_id || formationsError}
             >
                 <Select 
                     placeholder="Sélectionnez une formation"
                     showSearch
+                    loading={formationsLoading}
                     optionFilterProp="children"
                     filterOption={(input, option) =>
                         option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0

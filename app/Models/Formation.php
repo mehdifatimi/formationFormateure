@@ -27,7 +27,9 @@ class Formation extends Model
         'prix',
         'places_disponibles',
         'statut',
-        'formateur_id'
+        'formateur_id',
+        'ville_id',
+        'filiere_id'
     ];
 
     /**
@@ -49,6 +51,22 @@ class Formation extends Model
     public function formateur(): BelongsTo
     {
         return $this->belongsTo(Formateur::class);
+    }
+
+    /**
+     * Get the ville that owns the formation.
+     */
+    public function ville(): BelongsTo
+    {
+        return $this->belongsTo(Ville::class);
+    }
+
+    /**
+     * Get the filiere that owns the formation.
+     */
+    public function filiere(): BelongsTo
+    {
+        return $this->belongsTo(Filiere::class);
     }
 
     /**

@@ -8,41 +8,49 @@ class ParticipantController extends Controller
 {
     public function index()
     {
-        $participants = Participant::with(['user', 'formation'])->get();
+        $participants = Participant::with('formation')->get();
         return response()->json($participants);
     }
 
     public function store(Request $request)
     {
         $request->validate([
-            'idParticipant' => 'required|unique:participants',
-            'idFormation' => 'required|exists:formations,id',
-            'idIsta' => 'required',
-            'dateFin' => 'required|date',
-            'idUser' => 'required|exists:users,idUser'
+            'nom' => 'required|string|max:255',
+            'prenom' => 'required|string|max:255',
+            'email' => 'required|email|unique:participants',
+            'telephone' => 'required|string|max:20',
+            'date_naissance' => 'required|date',
+            'niveau_etude' => 'required|string',
+            'formation_id' => 'required|exists:formations,id',
+            'attentes' => 'nullable|string',
+            'statut_paiement' => 'required|string|in:en attente,payé,annulé,remboursé'
         ]);
 
         $participant = Participant::create($request->all());
-        return response()->json($participant, 201);
+        return response()->json($participant->load('formation'), 201);
     }
 
     public function show(Participant $participant)
     {
-        return response()->json($participant->load(['user', 'formation']));
+        return response()->json($participant->load('formation'));
     }
 
     public function update(Request $request, Participant $participant)
     {
         $request->validate([
-            'idParticipant' => 'required|unique:participants,idParticipant,' . $participant->id,
-            'idFormation' => 'required|exists:formations,id',
-            'idIsta' => 'required',
-            'dateFin' => 'required|date',
-            'idUser' => 'required|exists:users,idUser'
+            'nom' => 'required|string|max:255',
+            'prenom' => 'required|string|max:255',
+            'email' => 'required|email|unique:participants,email,' . $participant->id,
+            'telephone' => 'required|string|max:20',
+            'date_naissance' => 'required|date',
+            'niveau_etude' => 'required|string',
+            'formation_id' => 'required|exists:formations,id',
+            'attentes' => 'nullable|string',
+            'statut_paiement' => 'required|string|in:en attente,payé,annulé,remboursé'
         ]);
 
         $participant->update($request->all());
-        return response()->json($participant);
+        return response()->json($participant->load('formation'));
     }
 
     public function destroy(Participant $participant)
