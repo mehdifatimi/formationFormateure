@@ -12,14 +12,16 @@ const LoginForm = () => {
     const onFinish = async (values) => {
         setLoading(true);
         try {
-            console.log('Attempting login with:', values);
+            console.log('Tentative de connexion avec:', { email: values.email });
+            
             const response = await api.post('/login', {
                 email: values.email,
                 password: values.password
             });
             
+            console.log('Réponse de connexion:', response.data);
+            
             const { token, user } = response.data;
-            console.log('Login successful, user:', user);
             
             // Stocker le token et les informations utilisateur
             localStorage.setItem('token', token);
@@ -32,18 +34,36 @@ const LoginForm = () => {
             navigate('/dashboard');
         } catch (error) {
             console.error('Login error:', error);
+            
             if (error.response) {
-                // Le serveur a répondu avec un code d'erreur
-                console.error('Error response:', error.response.data);
-                message.error(error.response.data.message || 'Erreur de connexion');
+                console.error('Détails de l\'erreur:', error.response.data);
+                
+                // Gestion plus détaillée des erreurs HTTP
+                switch (error.response.status) {
+                    case 405:
+                        message.error('Méthode non autorisée. Veuillez réessayer.');
+                        break;
+                    case 422:
+                        // Afficher les messages d'erreur spécifiques du serveur
+                        if (error.response.data.errors) {
+                            const errorMessages = Object.values(error.response.data.errors).flat();
+                            message.error(errorMessages.join(', '));
+                        } else {
+                            message.error(error.response.data.message || 'Données invalides. Vérifiez vos informations.');
+                        }
+                        break;
+                    case 401:
+                        message.error('Identifiants incorrects.');
+                        break;
+                    default:
+                        message.error(error.response.data.message || 'Erreur de connexion');
+                }
             } else if (error.request) {
-                // La requête a été faite mais aucune réponse n'a été reçue
-                console.error('No response received:', error.request);
-                message.error('Pas de réponse du serveur');
+                console.error('Erreur de requête:', error.request);
+                message.error('Impossible de joindre le serveur. Veuillez réessayer plus tard.');
             } else {
-                // Une erreur s'est produite lors de la configuration de la requête
-                console.error('Request setup error:', error.message);
-                message.error('Erreur lors de la connexion');
+                console.error('Erreur:', error.message);
+                message.error('Une erreur est survenue. Veuillez réessayer.');
             }
         } finally {
             setLoading(false);

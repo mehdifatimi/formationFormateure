@@ -2,9 +2,11 @@
 
 namespace Database\Seeders;
 
+use App\Models\Formateur;
+use App\Models\Profil;
+use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
-use Faker\Factory as Faker;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -13,33 +15,25 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $faker = Faker::create();
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-        
-        // Clear all tables first
-        DB::table('participants')->truncate();
-        DB::table('animateurs')->truncate();
-        DB::table('formations')->truncate();
-        DB::table('filieres')->truncate();
-        DB::table('cdcs')->truncate();
-        DB::table('drifs')->truncate();
-        DB::table('drs')->truncate();
-        DB::table('villes')->truncate();
-        DB::table('regions')->truncate();
-        
-        $this->call([
-            UserSeeder::class,
-            RegionSeeder::class,
-            VilleSeeder::class,
-            DRSeeder::class,
-            DRIFSeeder::class,
-            CDCSeeder::class,
-            FiliereSeeder::class,
-            AnimateurSeeder::class,
-            FormationSeeder::class,
-            ParticipantSeeder::class,
+        // Create admin user
+        $admin = User::factory()->create([
+            'name' => 'Admin User',
+            'email' => 'admin@example.com',
+            'password' => Hash::make('password'),
+            'role' => 'admin'
         ]);
-        
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+
+        // Create admin profile
+        Profil::factory()->create([
+            'user_id' => $admin->id
+        ]);
+
+        // Create formateurs
+        Formateur::factory(10)->create();
+
+        // Create regular users with profiles
+        User::factory(20)
+            ->has(Profil::factory())
+            ->create();
     }
 }

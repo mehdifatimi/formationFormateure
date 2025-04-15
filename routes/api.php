@@ -24,6 +24,15 @@ use App\Http\Controllers\AuthController;
 |
 */
 
+// CORS preflight requests
+Route::options('{any}', function () {
+    return response('', 200)
+        ->header('Access-Control-Allow-Origin', 'http://localhost:3000')
+        ->header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+        ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
+        ->header('Access-Control-Allow-Credentials', 'true');
+})->where('any', '.*');
+
 // API Resource Routes
 Route::apiResource('regions', RegionController::class);
 Route::apiResource('villes', VilleController::class);
@@ -40,6 +49,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 
 // Authentication routes
+
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum'); 
