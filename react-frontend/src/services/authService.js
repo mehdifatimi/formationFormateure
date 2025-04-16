@@ -1,115 +1,118 @@
-import axios from 'axios';
+import api from './api';
 
-const API_URL = 'http://localhost:8000/api'; // Update with your Laravel backend URL
+/**
+ * Login user
+ * @param {string} email - User email
+ * @param {string} password - User password
+ * @returns {Promise} Promise object with user data and token
+ */
+export const login = async (email, password) => {
+    try {
+        console.log('Tentative de connexion avec:', { email });
+        console.log('Configuration de l\'API:', {
+            baseURL: api.defaults.baseURL,
+            headers: api.defaults.headers,
+            withCredentials: api.defaults.withCredentials
+        });
 
-// Create axios instance with default config
-const api = axios.create({
-    baseURL: API_URL,
-    headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest'
-    },
-    withCredentials: true
-});
+        const response = await api.post('/login', { email, password });
+        
+        console.log('Réponse de connexion:', {
+            status: response.status,
+            headers: response.headers,
+            data: response.data
+        });
 
-// Add request interceptor to add auth token
-api.interceptors.request.use(
-    (config) => {
-        const token = localStorage.getItem('token');
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
+        if (response.data.token) {
+            localStorage.setItem('token', response.data.token);
+            localStorage.setItem('user', JSON.stringify(response.data.user));
+            console.log('Token et données utilisateur stockés avec succès');
         }
-        return config;
-    },
-    (error) => {
-        console.error('Request error:', error);
-        return Promise.reject(error);
-    }
-);
-
-// Add response interceptor to handle errors
-api.interceptors.response.use(
-    (response) => response,
-    (error) => {
-        if (error.response) {
-            console.error('Response error:', error.response.data);
-            if (error.response.status === 401) {
-                // Handle unauthorized access
-                localStorage.removeItem('token');
-                localStorage.removeItem('user');
-                window.location.href = '/login';
-            }
-        } else if (error.request) {
-            console.error('Request error:', error.request);
-        } else {
-            console.error('Error:', error.message);
-        }
-        return Promise.reject(error);
-    }
-);
-
-const authService = {
-    login: async (email, password) => {
-        try {
-            const response = await api.post('/login', { 
-                email, 
-                password 
-            }, {
-                withCredentials: true
-            });
-            
-            if (response.data && response.data.user && response.data.token) {
-                const { user, token } = response.data;
-                
-                // Store token and user data
-                localStorage.setItem('token', token);
-                localStorage.setItem('user', JSON.stringify(user));
-                
-                return { user, token };
-            } else {
-                throw new Error('Invalid response format from server');
-            }
-        } catch (error) {
-            console.error('Login error:', error.response?.data || error.message);
-            if (error.response) {
-                throw new Error(error.response.data.message || 'Login failed');
-            } else if (error.request) {
-                throw new Error('No response from server. Please check if the server is running.');
-            } else {
-                throw new Error('Error setting up request');
-            }
-        }
-    },
-
-    logout: () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-    },
-
-    getCurrentUser: () => {
-        const user = localStorage.getItem('user');
-        return user ? JSON.parse(user) : null;
-    },
-
-    isAuthenticated: () => {
-        return !!localStorage.getItem('token');
-    },
-
-    // Add method to refresh token if needed
-    refreshToken: async () => {
-        try {
-            const response = await api.post('/refresh-token', {}, {
-                withCredentials: true
-            });
-            const { token } = response.data;
-            localStorage.setItem('token', token);
-            return token;
-        } catch (error) {
-            authService.logout();
-            throw error;
-        }
+        return response.data;
+    } catch (error) {
+        console.error('Erreur de connexion détaillée:', {
+            message: error.message,
+            response: error.response ? {
+                status: error.response.status,
+                data: error.response.data,
+                headers: error.response.headers
+            } : null,
+            request: error.request ? {
+                method: error.request.method,
+                url: error.request.url,
+                headers: error.request.headers
+            } : null
+        });
+        throw error;
     }
 };
 
-export default authService; 
+/**
+ * Register user
+ * @param {Object} userData - User data
+ * @returns {Promise} Promise object with user data
+ */
+export const register = async (userData) => {
+    try {
+        const response = await api.post('/register', userData);
+        return response.data;
+    } catch (error) {
+        console.error('Registration error:', error);
+        throw error;
+    }
+};
+
+/**
+ * Logout user
+ * @returns {Promise} Promise object
+ */
+export const logout = async () => {
+    try {
+        await api.post('/logout');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+    } catch (error) {
+        console.error('Logout error:', error);
+        throw error;
+    }
+};
+
+/**
+ * Get current user
+ * @returns {Object|null} Current user data or null
+ */
+export const getCurrentUser = () => {
+    const user = localStorage.getItem('user');
+    return user ? JSON.parse(user) : null;
+};
+
+/**
+ * Check if user is authenticated
+ * @returns {boolean} True if user is authenticated
+ */
+export const isAuthenticated = () => {
+    return !!localStorage.getItem('token');
+};
+
+/**
+ * Get auth token
+ * @returns {string|null} Auth token or null
+ */
+export const getToken = () => {
+    return localStorage.getItem('token');
+};
+
+// Add method to refresh token if needed
+export const refreshToken = async () => {
+    try {
+        const response = await api.post('/refresh-token', {}, {
+            withCredentials: true
+        });
+        const { token } = response.data;
+        localStorage.setItem('token', token);
+        return token;
+    } catch (error) {
+        logout();
+        throw error;
+    }
+}; 

@@ -183,4 +183,32 @@ class AuthController extends Controller
             ]);
         }
     }
+
+    public function refreshToken(Request $request)
+    {
+        try {
+            $user = $request->user();
+            $token = $user->createToken('auth-token')->plainTextToken;
+
+            return response()->json([
+                'token' => $token
+            ])->withHeaders([
+                'Access-Control-Allow-Origin' => 'http://localhost:3000',
+                'Access-Control-Allow-Credentials' => 'true',
+                'Access-Control-Allow-Methods' => 'POST, OPTIONS',
+                'Access-Control-Allow-Headers' => 'Content-Type, Authorization, X-Requested-With'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Token refresh error: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'An error occurred during token refresh',
+                'error' => $e->getMessage()
+            ], 500)->withHeaders([
+                'Access-Control-Allow-Origin' => 'http://localhost:3000',
+                'Access-Control-Allow-Credentials' => 'true',
+                'Access-Control-Allow-Methods' => 'POST, OPTIONS',
+                'Access-Control-Allow-Headers' => 'Content-Type, Authorization, X-Requested-With'
+            ]);
+        }
+    }
 } 

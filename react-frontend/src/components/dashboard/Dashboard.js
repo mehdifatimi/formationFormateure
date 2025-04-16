@@ -6,18 +6,24 @@ import {
     BookOutlined,
     ProfileOutlined,
     DashboardOutlined,
-    BarChartOutlined
+    BarChartOutlined,
+    CalendarOutlined,
+    LineChartOutlined,
+    ClockCircleOutlined
 } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import FormationList from './FormationList';
 import FormateurList from './FormateurList';
 import ParticipantList from './ParticipantList';
 import ProfileList from './ProfileList';
+import AbsenceList from './AbsenceList';
 import './Dashboard.css';
 
 const { Header, Sider, Content } = Layout;
 
 const Dashboard = () => {
     const [selectedMenu, setSelectedMenu] = useState('dashboard');
+    const navigate = useNavigate();
 
     const menuItems = [
         {
@@ -45,7 +51,33 @@ const Dashboard = () => {
             icon: <ProfileOutlined />,
             label: 'Profils',
         },
+        {
+            key: 'plan',
+            icon: <CalendarOutlined />,
+            label: 'Plan Training',
+        },
+        {
+            key: 'trainers',
+            icon: <LineChartOutlined />,
+            label: 'Track Trainers',
+        },
+        {
+            key: 'absences',
+            icon: <ClockCircleOutlined />,
+            label: 'Absences',
+        },
     ];
+
+    const handleMenuClick = ({ key }) => {
+        setSelectedMenu(key);
+        
+        // Navigate to the appropriate route for special menu items
+        if (key === 'plan') {
+            navigate('/dashboard/plan');
+        } else if (key === 'trainers') {
+            navigate('/dashboard/trainers');
+        }
+    };
 
     const renderContent = () => {
         switch (selectedMenu) {
@@ -57,6 +89,8 @@ const Dashboard = () => {
                 return <ParticipantList />;
             case 'profiles':
                 return <ProfileList />;
+            case 'absences':
+                return <AbsenceList />;
             default:
                 return (
                     <div className="dashboard-overview">
@@ -127,7 +161,7 @@ const Dashboard = () => {
                     mode="inline"
                     selectedKeys={[selectedMenu]}
                     items={menuItems}
-                    onClick={({ key }) => setSelectedMenu(key)}
+                    onClick={handleMenuClick}
                 />
             </Sider>
             <Layout>

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Form, Input, Button, message } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import api from '../services/api';
+import { login } from '../services/authService';
 import './LoginForm.css';
 
 const LoginForm = () => {
@@ -14,21 +14,9 @@ const LoginForm = () => {
         try {
             console.log('Tentative de connexion avec:', { email: values.email });
             
-            const response = await api.post('/login', {
-                email: values.email,
-                password: values.password
-            });
+            const response = await login(values.email, values.password);
             
-            console.log('Réponse de connexion:', response.data);
-            
-            const { token, user } = response.data;
-            
-            // Stocker le token et les informations utilisateur
-            localStorage.setItem('token', token);
-            localStorage.setItem('user', JSON.stringify(user));
-            
-            // Mettre à jour l'en-tête d'autorisation pour les futures requêtes
-            api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+            console.log('Réponse de connexion:', response);
             
             message.success('Connexion réussie !');
             navigate('/dashboard');
@@ -60,7 +48,7 @@ const LoginForm = () => {
                 }
             } else if (error.request) {
                 console.error('Erreur de requête:', error.request);
-                message.error('Impossible de joindre le serveur. Veuillez réessayer plus tard.');
+                message.error('Impossible de contacter le serveur. Vérifiez votre connexion.');
             } else {
                 console.error('Erreur:', error.message);
                 message.error('Une erreur est survenue. Veuillez réessayer.');
@@ -72,8 +60,8 @@ const LoginForm = () => {
 
     return (
         <div className="login-container">
-            <div className="login-box">
-                <h2>Connexion</h2>
+            <div className="login-form-container">
+                <h1>Connexion</h1>
                 <Form
                     name="login"
                     onFinish={onFinish}
@@ -82,13 +70,13 @@ const LoginForm = () => {
                     <Form.Item
                         name="email"
                         rules={[
-                            { required: true, message: 'Veuillez entrer votre email' },
+                            { required: true, message: 'Veuillez saisir votre email' },
                             { type: 'email', message: 'Email invalide' }
                         ]}
                     >
-                        <Input
-                            prefix={<UserOutlined />}
-                            placeholder="Email"
+                        <Input 
+                            prefix={<UserOutlined />} 
+                            placeholder="Email" 
                             size="large"
                         />
                     </Form.Item>
@@ -96,7 +84,8 @@ const LoginForm = () => {
                     <Form.Item
                         name="password"
                         rules={[
-                            { required: true, message: 'Veuillez entrer votre mot de passe' }
+                            { required: true, message: 'Veuillez saisir votre mot de passe' },
+                            { min: 6, message: 'Le mot de passe doit contenir au moins 6 caractères' }
                         ]}
                     >
                         <Input.Password
@@ -107,13 +96,12 @@ const LoginForm = () => {
                     </Form.Item>
 
                     <Form.Item>
-                        <Button
-                            type="primary"
-                            htmlType="submit"
+                        <Button 
+                            type="primary" 
+                            htmlType="submit" 
                             loading={loading}
-                            className="login-button"
-                            size="large"
                             block
+                            size="large"
                         >
                             Se connecter
                         </Button>

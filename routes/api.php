@@ -14,6 +14,7 @@ use App\Http\Controllers\ParticipantController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\FormateurController;
 use App\Http\Controllers\ProfilController;
+use App\Http\Controllers\AbsenceController;
 
 /*
 |--------------------------------------------------------------------------
@@ -60,6 +61,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
+Route::post('/refresh-token', [AuthController::class, 'refreshToken'])->middleware('auth:sanctum');
 
 // Formation validation routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -71,4 +73,13 @@ Route::middleware('auth:sanctum')->group(function () {
 // Participant formation management routes
 Route::post('participants/{participant}/formations', [ParticipantController::class, 'attachFormation']);
 Route::delete('participants/{participant}/formations/{formation}', [ParticipantController::class, 'detachFormation']);
-Route::put('participants/{participant}/formations/{formation}/status', [ParticipantController::class, 'updateFormationStatus']); 
+Route::put('participants/{participant}/formations/{formation}/status', [ParticipantController::class, 'updateFormationStatus']);
+
+// Participant progress tracking route
+Route::middleware('auth:sanctum')->get('participants/progress', [ParticipantController::class, 'getProgress']);
+
+// Absence management routes
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('absences/statistics', [AbsenceController::class, 'statistics']);
+    Route::apiResource('absences', AbsenceController::class);
+}); 

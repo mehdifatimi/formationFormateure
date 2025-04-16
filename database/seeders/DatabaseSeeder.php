@@ -6,7 +6,6 @@ use App\Models\Formateur;
 use App\Models\Profil;
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -15,33 +14,16 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Create admin user
-        $admin = User::factory()->create([
-            'name' => 'Admin User',
-            'email' => 'admin@example.com',
-            'password' => Hash::make('password'),
-            'role' => 'admin'
-        ]);
-
-        // Create admin profile
-        Profil::factory()->create([
-            'user_id' => $admin->id
-        ]);
-
-        // Create formateurs
-        Formateur::factory(10)->create();
-
-        // Create regular users with profiles
-        User::factory(20)
-            ->has(Profil::factory())
-            ->create();
-
-        // Run additional seeders in the correct order
+        // Run seeders in the correct order
         $this->call([
+            UserSeeder::class,
             RegionSeeder::class,
             VilleSeeder::class,
             CDCSeeder::class,
             FiliereSeeder::class,
         ]);
+
+        // Create formateurs
+        Formateur::factory(10)->create();
     }
 }

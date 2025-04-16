@@ -5,6 +5,7 @@ use App\Models\Participant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use App\Models\Formation;
 
 class ParticipantController extends Controller
 {
@@ -184,7 +185,7 @@ class ParticipantController extends Controller
         }
     }
 
-    public function updateFormationStatus(Request $request, Participant $participant)
+    public function updateFormationStatus(Request $request, Participant $participant, Formation $formation)
     {
         try {
             $validated = $request->validate([
@@ -200,6 +201,79 @@ class ParticipantController extends Controller
         } catch (\Exception $e) {
             Log::error('Erreur lors de la mise à jour du statut: ' . $e->getMessage());
             return response()->json(['message' => 'Erreur lors de la mise à jour du statut'], 500);
+        }
+    }
+
+    /**
+     * Get progress data for all participants (trainers)
+     * 
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getProgress()
+    {
+        try {
+            // Get all participants with their formations, absences, and evaluations
+            $participants = Participant::with([
+                'formations' => function($query) {
+                    $query->select('formations.id', 'formations.titre', 'formations.date_debut', 'formations.date_fin');
+                },
+                'formations.pivot' => function($query) {
+                    $query->select('formation_participant.participant_id', 'formation_participant.formation_id', 'formation_participant.statut');
+                }
+            ])->get();
+
+            // Process the data to include progress metrics
+            $progressData = $participants->map(function($participant) {
+                $totalFormations = $participant->formations->count();
+                $completedFormations = $participant->formations->filter(function($formation) {
+                    return $formation->pivot->statut === 'terminé';
+                })->count();
+                
+                $absences = $participant->formations->filter(function($formation) {
+                    return $formation->pivot->statut === 'absent';
+                })->count();
+                
+                $absenceRate = $totalFormations > 0 ? ($absences / $totalFormations) * 100 : 0;
+                
+                // Calculate average evaluation score (placeholder - would need an evaluations table)
+                $evaluationScore = 0; // This would be calculated from actual evaluation data
+                
+                return [
+                    'id' => $participant->id,
+                    'nom' => $participant->nom,
+                    'prenom' => $participant->prenom,
+                    'email' => $participant->email,
+                    'total_formations' => $totalFormations,
+                    'completed_formations' => $completedFormations,
+                    'absences' => $absences,
+                    'absence_rate' => round($absenceRate, 2),
+                    'evaluation_score' => $evaluationScore,
+                    'formations' => $participant->formations->map(function($formation) {
+                        return [
+                            'id' => $formation->id,
+                            'titre' => $formation->titre,
+                            'date_debut' => $formation->date_debut,
+                            'date_fin' => $formation->date_fin,
+                            'statut' => $formation->pivot->statut
+                        ];
+                    })
+                ];
+            });
+
+            return response()->json($progressData)->withHeaders([
+                'Access-Control-Allow-Origin' => 'http://localhost:3000',
+                'Access-Control-Allow-Credentials' => 'true',
+                'Access-Control-Allow-Methods' => 'GET, OPTIONS',
+                'Access-Control-Allow-Headers' => 'Content-Type, Authorization, X-Requested-With'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de la récupération des données de progression: ' . $e->getMessage());
+            return response()->json(['message' => 'Erreur lors de la récupération des données de progression'], 500)->withHeaders([
+                'Access-Control-Allow-Origin' => 'http://localhost:3000',
+                'Access-Control-Allow-Credentials' => 'true',
+                'Access-Control-Allow-Methods' => 'GET, OPTIONS',
+                'Access-Control-Allow-Headers' => 'Content-Type, Authorization, X-Requested-With'
+            ]);
         }
     }
 } 

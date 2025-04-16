@@ -63,24 +63,71 @@ const FormationList = () => {
 
     const renderParticipants = (participants) => {
         if (!participants || participants.length === 0) {
-            return <span>Aucun participant</span>;
+            return <span style={{ color: '#999' }}>Aucun participant</span>;
         }
 
         const content = (
-            <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+            <div style={{ 
+                maxHeight: '300px', 
+                overflowY: 'auto', 
+                width: '250px',
+                padding: '8px'
+            }}>
+                <div style={{ 
+                    marginBottom: '8px', 
+                    padding: '8px',
+                    backgroundColor: '#f0f2f5',
+                    borderRadius: '4px'
+                }}>
+                    <strong>Total: {participants.length} participant(s)</strong>
+                </div>
                 {participants.map(participant => (
-                    <div key={participant.id} style={{ marginBottom: '8px' }}>
-                        <Tag color="blue">
-                            {participant.prenom} {participant.nom}
-                        </Tag>
+                    <div 
+                        key={participant.id} 
+                        style={{ 
+                            marginBottom: '8px',
+                            padding: '8px',
+                            backgroundColor: 'white',
+                            borderRadius: '4px',
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                            display: 'flex',
+                            alignItems: 'center'
+                        }}
+                    >
+                        <UserOutlined style={{ 
+                            marginRight: '8px',
+                            color: '#1890ff',
+                            backgroundColor: '#e6f7ff',
+                            padding: '4px',
+                            borderRadius: '50%'
+                        }} />
+                        <span>{participant.prenom} {participant.nom}</span>
                     </div>
                 ))}
             </div>
         );
 
         return (
-            <Popover content={content} title="Participants" trigger="click">
-                <Button type="primary" icon={<UserOutlined />}>
+            <Popover 
+                content={content} 
+                title={
+                    <div style={{ 
+                        borderBottom: '1px solid #f0f0f0',
+                        padding: '4px 0'
+                    }}>
+                        Liste des participants
+                    </div>
+                } 
+                trigger="click"
+                placement="right"
+            >
+                <Button 
+                    type="primary"
+                    icon={<UserOutlined />}
+                    style={{
+                        backgroundColor: participants.length > 0 ? '#1890ff' : '#d9d9d9'
+                    }}
+                >
                     {participants.length} participant(s)
                 </Button>
             </Popover>

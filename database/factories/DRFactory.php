@@ -9,10 +9,7 @@ class DRFactory extends Factory
     public function definition(): array
     {
         return [
-            'nom' => fake()->lastName(),
-            'prenom' => fake()->firstName(),
-            'email' => fake()->unique()->safeEmail(),
-            'telephone' => fake()->phoneNumber(),
+            'nom' => fake()->company(),
         ];
     }
 } 
