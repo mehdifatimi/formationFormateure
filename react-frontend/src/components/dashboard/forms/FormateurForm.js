@@ -19,40 +19,24 @@ const FormateurForm = ({ initialValues, onFinish, onCancel }) => {
     const [form] = Form.useForm();
 
     const handleSubmit = async (values) => {
-        // S'assurer que les spécialités sont envoyées comme un tableau
-        const formData = {
-            ...values,
-            specialites: Array.isArray(values.specialites) ? values.specialites : []
-        };
-        
-        // Ajouter des valeurs par défaut pour les champs manquants
-        if (!formData.disponible) {
-            formData.disponible = true;
+        try {
+            await onFinish(values);
+        } catch (error) {
+            console.error('Erreur lors de la sauvegarde:', error);
         }
-        
-        console.log('Données envoyées au serveur:', formData);
-        await onFinish(formData);
     };
 
     return (
         <Form
             form={form}
             layout="vertical"
-            initialValues={{
-                ...initialValues,
-                specialites: initialValues?.specialites ? 
-                    (typeof initialValues.specialites === 'string' ? 
-                        JSON.parse(initialValues.specialites) : 
-                        initialValues.specialites) : 
-                    [],
-                disponible: initialValues?.disponible !== undefined ? initialValues.disponible : true
-            }}
             onFinish={handleSubmit}
+            initialValues={initialValues}
         >
             <Form.Item
                 name="nom"
                 label="Nom"
-                rules={[{ required: true, message: 'Veuillez entrer le nom' }]}
+                rules={[{ required: true, message: 'Veuillez saisir le nom' }]}
             >
                 <Input />
             </Form.Item>
@@ -60,7 +44,7 @@ const FormateurForm = ({ initialValues, onFinish, onCancel }) => {
             <Form.Item
                 name="prenom"
                 label="Prénom"
-                rules={[{ required: true, message: 'Veuillez entrer le prénom' }]}
+                rules={[{ required: true, message: 'Veuillez saisir le prénom' }]}
             >
                 <Input />
             </Form.Item>
@@ -69,7 +53,7 @@ const FormateurForm = ({ initialValues, onFinish, onCancel }) => {
                 name="email"
                 label="Email"
                 rules={[
-                    { required: true, message: 'Veuillez entrer l\'email' },
+                    { required: true, message: 'Veuillez saisir l\'email' },
                     { type: 'email', message: 'Email invalide' }
                 ]}
             >
@@ -79,24 +63,21 @@ const FormateurForm = ({ initialValues, onFinish, onCancel }) => {
             <Form.Item
                 name="telephone"
                 label="Téléphone"
-                rules={[{ required: true, message: 'Veuillez entrer le numéro de téléphone' }]}
+                rules={[{ required: true, message: 'Veuillez saisir le numéro de téléphone' }]}
             >
                 <Input />
             </Form.Item>
 
             <Form.Item
-                name="specialites"
-                label="Spécialités"
-                rules={[{ required: true, message: 'Veuillez sélectionner au moins une spécialité' }]}
+                name="specialite"
+                label="Spécialité"
+                rules={[{ required: true, message: 'Veuillez sélectionner la spécialité' }]}
             >
-                <Select
-                    mode="multiple"
-                    placeholder="Sélectionnez les spécialités"
-                    style={{ width: '100%' }}
-                >
-                    {specialites.map(spec => (
-                        <Option key={spec} value={spec}>{spec}</Option>
-                    ))}
+                <Select>
+                    <Select.Option value="developpement_web">Développement Web</Select.Option>
+                    <Select.Option value="design">Design</Select.Option>
+                    <Select.Option value="marketing_digital">Marketing Digital</Select.Option>
+                    <Select.Option value="gestion_projet">Gestion de Projet</Select.Option>
                 </Select>
             </Form.Item>
 
@@ -129,7 +110,7 @@ const FormateurForm = ({ initialValues, onFinish, onCancel }) => {
             <Form.Item>
                 <Space>
                     <Button type="primary" htmlType="submit">
-                        {initialValues ? 'Mettre à jour' : 'Créer'}
+                        {initialValues ? 'Modifier' : 'Créer'}
                     </Button>
                     <Button onClick={onCancel}>
                         Annuler

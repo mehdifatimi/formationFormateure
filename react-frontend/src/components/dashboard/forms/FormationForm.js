@@ -1,30 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Form, Input, DatePicker, InputNumber, Select, Button, Space, Tag } from 'antd';
+import { Form, Input, DatePicker, InputNumber, Select, Button, Space } from 'antd';
 import api from '../../../services/api';
-import moment from 'moment';
 
 const { TextArea } = Input;
-const { Option } = Select;
+const { RangePicker } = DatePicker;
 
 const FormationForm = ({ initialValues, onFinish, onCancel }) => {
     const [form] = Form.useForm();
     const [formateurs, setFormateurs] = useState([]);
-    const [villes, setVilles] = useState([]);
-    const [filieres, setFilieres] = useState([]);
-    const [participants, setParticipants] = useState([]);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         fetchFormateurs();
-        fetchVilles();
-        fetchFilieres();
-        fetchParticipants();
         if (initialValues) {
             form.setFieldsValue({
                 ...initialValues,
-                date_debut: moment(initialValues.date_debut),
-                date_fin: moment(initialValues.date_fin),
-                participants: initialValues.participants?.map(p => p.id) || []
+                dates: [initialValues.date_debut, initialValues.date_fin],
             });
         }
     }, [initialValues, form]);
@@ -38,54 +29,21 @@ const FormationForm = ({ initialValues, onFinish, onCancel }) => {
         }
     };
 
-    const fetchVilles = async () => {
-        try {
-            const response = await api.get('/villes');
-            setVilles(response.data);
-        } catch (error) {
-            console.error('Erreur lors du chargement des villes:', error);
-        }
-    };
-
-    const fetchFilieres = async () => {
-        try {
-            const response = await api.get('/filieres');
-            setFilieres(response.data);
-        } catch (error) {
-            console.error('Erreur lors du chargement des filières:', error);
-        }
-    };
-
-    const fetchParticipants = async () => {
-        try {
-            const response = await api.get('/participants');
-            setParticipants(response.data);
-        } catch (error) {
-            console.error('Erreur lors du chargement des participants:', error);
-        }
-    };
-
     const handleSubmit = async (values) => {
         setLoading(true);
         try {
-            await onFinish({
+            const [date_debut, date_fin] = values.dates;
+            const formationData = {
                 ...values,
-                date_debut: values.date_debut.format('YYYY-MM-DD'),
-                date_fin: values.date_fin.format('YYYY-MM-DD'),
-                participants: values.participants || []
-            });
-        } finally {
-            setLoading(false);
+                date_debut: date_debut.format('YYYY-MM-DD'),
+                date_fin: date_fin.format('YYYY-MM-DD'),
+            };
+            delete formationData.dates;
+            await onFinish(formationData);
+        } catch (error) {
+            console.error('Erreur lors de la sauvegarde:', error);
         }
-    };
-
-    const tagRender = (props) => {
-        const { label, closable, onClose } = props;
-        return (
-            <Tag closable={closable} onClose={onClose} style={{ marginRight: 3 }}>
-                {label}
-            </Tag>
-        );
+        setLoading(false);
     };
 
     return (
@@ -94,15 +52,13 @@ const FormationForm = ({ initialValues, onFinish, onCancel }) => {
             layout="vertical"
             onFinish={handleSubmit}
             initialValues={{
-                statut: 'à venir',
-                niveau: 'débutant',
-                participants: []
+                statut: 'planifiee',
             }}
         >
             <Form.Item
                 name="titre"
                 label="Titre"
-                rules={[{ required: true, message: 'Le titre est requis' }]}
+                rules={[{ required: true, message: 'Veuillez saisir le titre' }]}
             >
                 <Input />
             </Form.Item>
@@ -110,158 +66,75 @@ const FormationForm = ({ initialValues, onFinish, onCancel }) => {
             <Form.Item
                 name="description"
                 label="Description"
-                rules={[{ required: true, message: 'La description est requise' }]}
+                rules={[{ required: true, message: 'Veuillez saisir la description' }]}
             >
                 <TextArea rows={4} />
             </Form.Item>
 
-            <Space size="large" style={{ display: 'flex', marginBottom: 8 }}>
-                <Form.Item
-                    name="date_debut"
-                    label="Date de début"
-                    rules={[{ required: true, message: 'La date de début est requise' }]}
-                >
-                    <DatePicker format="YYYY-MM-DD" />
-                </Form.Item>
-
-                <Form.Item
-                    name="date_fin"
-                    label="Date de fin"
-                    rules={[{ required: true, message: 'La date de fin est requise' }]}
-                >
-                    <DatePicker format="YYYY-MM-DD" />
-                </Form.Item>
-
-                <Form.Item
-                    name="duree"
-                    label="Durée (heures)"
-                    rules={[{ required: true, message: 'La durée est requise' }]}
-                >
-                    <InputNumber min={1} />
-                </Form.Item>
-            </Space>
-
-            <Space size="large" style={{ display: 'flex', marginBottom: 8 }}>
-                <Form.Item
-                    name="niveau"
-                    label="Niveau"
-                    rules={[{ required: true, message: 'Le niveau est requis' }]}
-                >
-                    <Select style={{ width: 200 }}>
-                        <Option value="débutant">Débutant</Option>
-                        <Option value="intermédiaire">Intermédiaire</Option>
-                        <Option value="avancé">Avancé</Option>
-                    </Select>
-                </Form.Item>
-
-                <Form.Item
-                    name="prix"
-                    label="Prix (€)"
-                    rules={[{ required: true, message: 'Le prix est requis' }]}
-                >
-                    <InputNumber
-                        min={0}
-                        step={0.01}
-                        formatter={value => `${value}€`}
-                        parser={value => value.replace('€', '')}
-                    />
-                </Form.Item>
-
-                <Form.Item
-                    name="places_disponibles"
-                    label="Places disponibles"
-                    rules={[{ required: true, message: 'Le nombre de places est requis' }]}
-                >
-                    <InputNumber min={1} />
-                </Form.Item>
-            </Space>
-
-            <Space size="large" style={{ display: 'flex', marginBottom: 8 }}>
-                <Form.Item
-                    name="formateur_id"
-                    label="Formateur"
-                    rules={[{ required: true, message: 'Le formateur est requis' }]}
-                >
-                    <Select style={{ width: 200 }}>
-                        {formateurs.map(formateur => (
-                            <Option key={formateur.id} value={formateur.id}>
-                                {formateur.prenom} {formateur.nom}
-                            </Option>
-                        ))}
-                    </Select>
-                </Form.Item>
-
-                <Form.Item
-                    name="ville_id"
-                    label="Ville"
-                    rules={[{ required: true, message: 'La ville est requise' }]}
-                >
-                    <Select style={{ width: 200 }}>
-                        {villes.map(ville => (
-                            <Option key={ville.id} value={ville.id}>
-                                {ville.nom}
-                            </Option>
-                        ))}
-                    </Select>
-                </Form.Item>
-
-                <Form.Item
-                    name="filiere_id"
-                    label="Filière"
-                    rules={[{ required: true, message: 'La filière est requise' }]}
-                >
-                    <Select style={{ width: 200 }}>
-                        {filieres.map(filiere => (
-                            <Option key={filiere.id} value={filiere.id}>
-                                {filiere.nom}
-                            </Option>
-                        ))}
-                    </Select>
-                </Form.Item>
-            </Space>
+            <Form.Item
+                name="dates"
+                label="Dates"
+                rules={[{ required: true, message: 'Veuillez sélectionner les dates' }]}
+            >
+                <RangePicker style={{ width: '100%' }} />
+            </Form.Item>
 
             <Form.Item
-                name="statut"
-                label="Statut"
-                rules={[{ required: true, message: 'Le statut est requis' }]}
+                name="prix"
+                label="Prix"
+                rules={[{ required: true, message: 'Veuillez saisir le prix' }]}
             >
-                <Select style={{ width: 200 }}>
-                    <Option value="à venir">À venir</Option>
-                    <Option value="en cours">En cours</Option>
-                    <Option value="terminé">Terminé</Option>
-                    <Option value="annulé">Annulé</Option>
+                <InputNumber
+                    style={{ width: '100%' }}
+                    min={0}
+                    formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                    parser={value => value.replace(/\$\s?|(,*)/g, '')}
+                />
+            </Form.Item>
+
+            <Form.Item
+                name="places_disponibles"
+                label="Places disponibles"
+                rules={[{ required: true, message: 'Veuillez saisir le nombre de places' }]}
+            >
+                <InputNumber style={{ width: '100%' }} min={1} />
+            </Form.Item>
+
+            <Form.Item
+                name="formateur_id"
+                label="Formateur"
+                rules={[{ required: true, message: 'Veuillez sélectionner un formateur' }]}
+            >
+                <Select>
+                    {formateurs.map(formateur => (
+                        <Select.Option key={formateur.id} value={formateur.id}>
+                            {formateur.nom} {formateur.prenom}
+                        </Select.Option>
+                    ))}
                 </Select>
             </Form.Item>
 
             <Form.Item
-                name="participants"
-                label="Participants"
+                name="statut"
+                label="Statut"
+                rules={[{ required: true, message: 'Veuillez sélectionner le statut' }]}
             >
-                <Select
-                    mode="multiple"
-                    style={{ width: '100%' }}
-                    placeholder="Sélectionnez les participants"
-                    tagRender={tagRender}
-                    optionLabelProp="label"
-                >
-                    {participants.map(participant => (
-                        <Option 
-                            key={participant.id} 
-                            value={participant.id}
-                            label={`${participant.prenom} ${participant.nom}`}
-                        >
-                            {participant.prenom} {participant.nom}
-                        </Option>
-                    ))}
+                <Select>
+                    <Select.Option value="planifiee">Planifiée</Select.Option>
+                    <Select.Option value="en_cours">En cours</Select.Option>
+                    <Select.Option value="terminee">Terminée</Select.Option>
+                    <Select.Option value="annulee">Annulée</Select.Option>
                 </Select>
             </Form.Item>
 
             <Form.Item>
                 <Space>
                     <Button type="primary" htmlType="submit" loading={loading}>
-                        {initialValues ? 'Mettre à jour' : 'Créer'}
+                        {initialValues ? 'Modifier' : 'Créer'}
                     </Button>
-                    <Button onClick={onCancel}>Annuler</Button>
+                    <Button onClick={onCancel}>
+                        Annuler
+                    </Button>
                 </Space>
             </Form.Item>
         </Form>

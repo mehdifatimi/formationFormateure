@@ -16,11 +16,19 @@ class DatabaseSeeder extends Seeder
     {
         // Run seeders in the correct order
         $this->call([
-            UserSeeder::class,
             RegionSeeder::class,
             VilleSeeder::class,
-            CDCSeeder::class,
             FiliereSeeder::class,
+            RegionVilleFiliereSeeder::class,
+            UserSeeder::class,
+            AdminUserSeeder::class,
+            CDCSeeder::class,
+            ParticipantSeeder::class,
+            AnimateurSeeder::class,
+            FormationSeeder::class,
+            DRIFSeeder::class,
+            DRSeeder::class,
+            AbsenceSeeder::class,
         ]);
 
         // Create formateurs

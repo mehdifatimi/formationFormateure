@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Space, Modal, message } from 'antd';
+import { Button, Space, Modal, message } from 'antd';
 import { EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import FormateurForm from './forms/FormateurForm';
+import DataTable from '../common/DataTable';
 import api from '../../services/api';
 
 const FormateurList = () => {
@@ -57,7 +58,7 @@ const FormateurList = () => {
             setModalVisible(false);
             fetchFormateurs();
         } catch (error) {
-            message.error('Erreur lors de l\'enregistrement');
+            message.error('Erreur lors de la sauvegarde');
         }
     };
 
@@ -83,21 +84,9 @@ const FormateurList = () => {
             key: 'telephone',
         },
         {
-            title: 'Spécialités',
-            dataIndex: 'specialites',
-            key: 'specialites',
-            render: (specialites) => {
-                const specs = typeof specialites === 'string' ? 
-                    JSON.parse(specialites) : 
-                    specialites;
-                return specs.join(', ');
-            },
-        },
-        {
-            title: 'Disponible',
-            dataIndex: 'disponible',
-            key: 'disponible',
-            render: (disponible) => (disponible ? 'Oui' : 'Non'),
+            title: 'Spécialité',
+            dataIndex: 'specialite',
+            key: 'specialite',
         },
         {
             title: 'Actions',
@@ -124,22 +113,22 @@ const FormateurList = () => {
     ];
 
     return (
-        <div>
-            <div style={{ marginBottom: 16 }}>
-                <Button
-                    type="primary"
-                    icon={<PlusOutlined />}
-                    onClick={handleAdd}
-                >
-                    Nouveau Formateur
-                </Button>
-            </div>
-
-            <Table
+        <>
+            <DataTable
+                title="Formateurs"
                 columns={columns}
                 dataSource={formateurs}
-                rowKey="id"
                 loading={loading}
+                searchPlaceholder="Rechercher un formateur..."
+                extra={
+                    <Button
+                        type="primary"
+                        icon={<PlusOutlined />}
+                        onClick={handleAdd}
+                    >
+                        Nouveau Formateur
+                    </Button>
+                }
             />
 
             <Modal
@@ -155,7 +144,7 @@ const FormateurList = () => {
                     onCancel={() => setModalVisible(false)}
                 />
             </Modal>
-        </div>
+        </>
     );
 };
 

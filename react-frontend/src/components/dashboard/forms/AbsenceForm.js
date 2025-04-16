@@ -1,110 +1,123 @@
-import React from 'react';
-import { Form, Input, Select, DatePicker, Button, Space } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Modal, Form, Input, DatePicker, Select, message } from 'antd';
+import { createAbsence, updateAbsence } from '../../../services/absenceService';
 import moment from 'moment';
 
 const { TextArea } = Input;
 
-const AbsenceForm = ({ initialValues, onSubmit, onCancel, participants, formations }) => {
+const AbsenceForm = ({ visible, onCancel, onSuccess, initialValues, participants, formations }) => {
     const [form] = Form.useForm();
+    const [loading, setLoading] = useState(false);
 
-    const handleSubmit = async (values) => {
-        const formattedValues = {
-            ...values,
-            date: values.date.format('YYYY-MM-DD')
-        };
-        await onSubmit(formattedValues);
+    useEffect(() => {
+        if (visible) {
+            if (initialValues) {
+                form.setFieldsValue({
+                    ...initialValues,
+                    date: initialValues.date ? moment(initialValues.date) : null,
+                });
+            } else {
+                form.resetFields();
+            }
+        }
+    }, [visible, initialValues, form]);
+
+    const handleSubmit = async () => {
+        try {
+            setLoading(true);
+            const values = await form.validateFields();
+            const formattedValues = {
+                ...values,
+                date: values.date.format('YYYY-MM-DD'),
+            };
+
+            if (initialValues) {
+                await updateAbsence(initialValues.id, formattedValues);
+                message.success('Absence updated successfully');
+            } else {
+                await createAbsence(formattedValues);
+                message.success('Absence created successfully');
+            }
+            onSuccess();
+        } catch (error) {
+            message.error('Failed to save absence');
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
-        <Form
-            form={form}
-            layout="vertical"
-            onFinish={handleSubmit}
-            initialValues={initialValues ? {
-                ...initialValues,
-                date: moment(initialValues.date)
-            } : undefined}
+        <Modal
+            title={initialValues ? 'Edit Absence' : 'Add Absence'}
+            open={visible}
+            onCancel={onCancel}
+            onOk={handleSubmit}
+            confirmLoading={loading}
         >
-            <Form.Item
-                name="participant_id"
-                label="Participant"
-                rules={[{ required: true, message: 'Veuillez sélectionner un participant' }]}
+            <Form
+                form={form}
+                layout="vertical"
             >
-                <Select
-                    placeholder="Sélectionner un participant"
-                    showSearch
-                    optionFilterProp="children"
+                <Form.Item
+                    name="participant_id"
+                    label="Participant"
+                    rules={[{ required: true, message: 'Please select a participant' }]}
                 >
-                    {participants.map(participant => (
-                        <Select.Option key={participant.id} value={participant.id}>
-                            {participant.prenom} {participant.nom}
-                        </Select.Option>
-                    ))}
-                </Select>
-            </Form.Item>
+                    <Select
+                        placeholder="Select a participant"
+                        options={participants.map(p => ({
+                            label: `${p.first_name} ${p.last_name}`,
+                            value: p.id,
+                        }))}
+                    />
+                </Form.Item>
 
-            <Form.Item
-                name="formation_id"
-                label="Formation"
-                rules={[{ required: true, message: 'Veuillez sélectionner une formation' }]}
-            >
-                <Select
-                    placeholder="Sélectionner une formation"
-                    showSearch
-                    optionFilterProp="children"
+                <Form.Item
+                    name="formation_id"
+                    label="Formation"
+                    rules={[{ required: true, message: 'Please select a formation' }]}
                 >
-                    {formations.map(formation => (
-                        <Select.Option key={formation.id} value={formation.id}>
-                            {formation.titre}
-                        </Select.Option>
-                    ))}
-                </Select>
-            </Form.Item>
+                    <Select
+                        placeholder="Select a formation"
+                        options={formations.map(f => ({
+                            label: f.title,
+                            value: f.id,
+                        }))}
+                    />
+                </Form.Item>
 
-            <Form.Item
-                name="date"
-                label="Date"
-                rules={[{ required: true, message: 'Veuillez sélectionner une date' }]}
-            >
-                <DatePicker
-                    style={{ width: '100%' }}
-                    format="DD/MM/YYYY"
-                />
-            </Form.Item>
+                <Form.Item
+                    name="date"
+                    label="Date"
+                    rules={[{ required: true, message: 'Please select a date' }]}
+                >
+                    <DatePicker style={{ width: '100%' }} />
+                </Form.Item>
 
-            <Form.Item
-                name="reason"
-                label="Raison"
-                rules={[{ required: true, message: 'Veuillez saisir la raison de l\'absence' }]}
-            >
-                <TextArea
-                    rows={4}
-                    placeholder="Décrivez la raison de l'absence"
-                />
-            </Form.Item>
+                <Form.Item
+                    name="reason"
+                    label="Reason"
+                    rules={[{ required: true, message: 'Please enter a reason' }]}
+                >
+                    <Input.TextArea rows={4} />
+                </Form.Item>
 
-            <Form.Item
-                name="status"
-                label="Statut"
-                rules={[{ required: true, message: 'Veuillez sélectionner un statut' }]}
-            >
-                <Select placeholder="Sélectionner un statut">
-                    <Select.Option value="justified">Justifiée</Select.Option>
-                    <Select.Option value="unjustified">Non justifiée</Select.Option>
-                </Select>
-            </Form.Item>
-
-            <Form.Item>
-                <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
-                    <Button onClick={onCancel}>
-                        Annuler
-                    </Button>
-                    <Button type="primary" htmlType="submit">
-                        {initialValues ? 'Modifier' : 'Ajouter'}
-                    </Button>
-                </Space>
-            </Form.Item>
-        </Form>
+                <Form.Item
+                    name="status"
+                    label="Status"
+                    rules={[{ required: true, message: 'Please select a status' }]}
+                >
+                    <Select
+                        placeholder="Select a status"
+                        options={[
+                            { label: 'Pending', value: 'pending' },
+                            { label: 'Approved', value: 'approved' },
+                            { label: 'Rejected', value: 'rejected' },
+                        ]}
+                    />
+                </Form.Item>
+            </Form>
+        </Modal>
     );
 };
 

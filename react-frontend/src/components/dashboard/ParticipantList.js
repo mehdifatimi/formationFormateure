@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Space, Modal, message, Tag } from 'antd';
+import { Button, Space, Modal, message, Tag } from 'antd';
 import { EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import ParticipantForm from './forms/ParticipantForm';
+import DataTable from '../common/DataTable';
 import api from '../../services/api';
 
 const ParticipantList = () => {
     const [participants, setParticipants] = useState([]);
     const [loading, setLoading] = useState(false);
     const [modalVisible, setModalVisible] = useState(false);
-    const [selectedParticipant, setSelectedParticipant] = useState(null);
+    const [editingParticipant, setEditingParticipant] = useState(null);
 
     useEffect(() => {
         fetchParticipants();
@@ -20,20 +21,18 @@ const ParticipantList = () => {
             const response = await api.get('/participants');
             setParticipants(response.data);
         } catch (error) {
-            console.error('Error fetching participants:', error);
             message.error('Erreur lors du chargement des participants');
-        } finally {
-            setLoading(false);
         }
+        setLoading(false);
     };
 
     const handleAdd = () => {
-        setSelectedParticipant(null);
+        setEditingParticipant(null);
         setModalVisible(true);
     };
 
-    const handleEdit = (participant) => {
-        setSelectedParticipant(participant);
+    const handleEdit = (record) => {
+        setEditingParticipant(record);
         setModalVisible(true);
     };
 
@@ -43,14 +42,14 @@ const ParticipantList = () => {
             message.success('Participant supprimé avec succès');
             fetchParticipants();
         } catch (error) {
-            message.error('Erreur lors de la suppression du participant');
+            message.error('Erreur lors de la suppression');
         }
     };
 
-    const handleSubmit = async (values) => {
+    const handleSave = async (values) => {
         try {
-            if (selectedParticipant) {
-                await api.put(`/participants/${selectedParticipant.id}`, values);
+            if (editingParticipant) {
+                await api.put(`/participants/${editingParticipant.id}`, values);
                 message.success('Participant mis à jour avec succès');
             } else {
                 await api.post('/participants', values);
@@ -59,7 +58,7 @@ const ParticipantList = () => {
             setModalVisible(false);
             fetchParticipants();
         } catch (error) {
-            message.error('Erreur lors de la sauvegarde du participant');
+            message.error('Erreur lors de la sauvegarde');
         }
     };
 
@@ -85,23 +84,37 @@ const ParticipantList = () => {
             key: 'telephone',
         },
         {
-            title: 'Niveau d\'étude',
-            dataIndex: 'niveau_etude',
-            key: 'niveau_etude',
+            title: 'Ville',
+            dataIndex: 'ville',
+            key: 'ville',
         },
         {
-            title: 'Statut du paiement',
-            dataIndex: 'statut_paiement',
-            key: 'statut_paiement',
-            render: (status) => (
+            title: 'Statut',
+            dataIndex: 'statut',
+            key: 'statut',
+            render: (statut) => (
                 <Tag color={
-                    status === 'en attente' ? 'orange' :
-                    status === 'payé' ? 'green' :
-                    status === 'annulé' ? 'red' :
-                    'blue'
+                    statut === 'actif' ? 'green' :
+                    statut === 'inactif' ? 'red' :
+                    'default'
                 }>
-                    {status}
+                    {statut === 'actif' ? 'Actif' :
+                     statut === 'inactif' ? 'Inactif' :
+                     'En attente'}
                 </Tag>
+            ),
+        },
+        {
+            title: 'Formations',
+            key: 'formations',
+            render: (_, record) => (
+                <Space>
+                    {record.formations?.map(formation => (
+                        <Tag key={formation.id} color="blue">
+                            {formation.titre}
+                        </Tag>
+                    ))}
+                </Space>
             ),
         },
         {
@@ -113,52 +126,54 @@ const ParticipantList = () => {
                         type="primary"
                         icon={<EditOutlined />}
                         onClick={() => handleEdit(record)}
-                    />
+                    >
+                        Modifier
+                    </Button>
                     <Button
-                        type="primary"
-                        danger
+                        type="danger"
                         icon={<DeleteOutlined />}
                         onClick={() => handleDelete(record.id)}
-                    />
+                    >
+                        Supprimer
+                    </Button>
                 </Space>
             ),
         },
     ];
 
     return (
-        <div className="dashboard-content">
-            <div className="content-header">
-                <h2>Gestion des Participants</h2>
-                <Button
-                    type="primary"
-                    icon={<PlusOutlined />}
-                    onClick={handleAdd}
-                >
-                    Ajouter un participant
-                </Button>
-            </div>
-
-            <Table
+        <>
+            <DataTable
+                title="Participants"
                 columns={columns}
                 dataSource={participants}
                 loading={loading}
-                rowKey="id"
+                searchPlaceholder="Rechercher un participant..."
+                extra={
+                    <Button
+                        type="primary"
+                        icon={<PlusOutlined />}
+                        onClick={handleAdd}
+                    >
+                        Nouveau Participant
+                    </Button>
+                }
             />
 
             <Modal
-                title={selectedParticipant ? 'Modifier le participant' : 'Ajouter un participant'}
-                visible={modalVisible}
+                title={editingParticipant ? "Modifier le participant" : "Nouveau participant"}
+                open={modalVisible}
                 onCancel={() => setModalVisible(false)}
                 footer={null}
                 width={800}
             >
                 <ParticipantForm
-                    initialValues={selectedParticipant}
-                    onFinish={handleSubmit}
+                    initialValues={editingParticipant}
+                    onFinish={handleSave}
                     onCancel={() => setModalVisible(false)}
                 />
             </Modal>
-        </div>
+        </>
     );
 };
 

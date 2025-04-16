@@ -11,10 +11,12 @@ const { Option } = Select;
 
 const ParticipantForm = ({ initialValues, onFinish, onCancel }) => {
     const [form] = Form.useForm();
+    const [formations, setFormations] = useState([]);
     const [loading, setLoading] = useState(false);
     const [formErrors, setFormErrors] = useState({});
 
     useEffect(() => {
+        fetchFormations();
         if (initialValues) {
             const formattedValues = {
                 ...initialValues,
@@ -24,12 +26,26 @@ const ParticipantForm = ({ initialValues, onFinish, onCancel }) => {
         }
     }, [initialValues, form]);
 
+    const fetchFormations = async () => {
+        try {
+            const response = await api.get('/formations');
+            setFormations(response.data);
+        } catch (error) {
+            console.error('Erreur lors du chargement des formations:', error);
+        }
+    };
+
     const handleSubmit = async (values) => {
         setLoading(true);
         setFormErrors({});
         try {
-            await onFinish(values);
+            const participantData = {
+                ...values,
+                date_naissance: values.date_naissance?.format('YYYY-MM-DD'),
+            };
+            await onFinish(participantData);
         } catch (error) {
+            console.error('Erreur lors de la sauvegarde:', error);
             message.error('Erreur lors de la sauvegarde');
         } finally {
             setLoading(false);
@@ -131,6 +147,36 @@ const ParticipantForm = ({ initialValues, onFinish, onCancel }) => {
                         return current && current > moment().endOf('day');
                     }}
                 />
+            </Form.Item>
+
+            <Form.Item
+                name="ville"
+                label="Ville"
+                rules={[{ required: true, message: 'Veuillez sélectionner la ville' }]}
+            >
+                <Select>
+                    <Select.Option value="paris">Paris</Select.Option>
+                    <Select.Option value="lyon">Lyon</Select.Option>
+                    <Select.Option value="marseille">Marseille</Select.Option>
+                    <Select.Option value="bordeaux">Bordeaux</Select.Option>
+                </Select>
+            </Form.Item>
+
+            <Form.Item
+                name="formations"
+                label="Formations"
+            >
+                <Select
+                    mode="multiple"
+                    placeholder="Sélectionnez les formations"
+                    style={{ width: '100%' }}
+                >
+                    {formations.map(formation => (
+                        <Select.Option key={formation.id} value={formation.id}>
+                            {formation.titre}
+                        </Select.Option>
+                    ))}
+                </Select>
             </Form.Item>
 
             <Form.Item
