@@ -36,7 +36,7 @@ class Participant extends Model
     ];
 
     protected $attributes = [
-        'statut_paiement' => 'en attente',
+        'statut_paiement' => 'en_attente',
     ];
 
     public function formations(): BelongsToMany
@@ -48,11 +48,11 @@ class Participant extends Model
 
     public function getFullNameAttribute()
     {
-        return "{$this->prenom} {$this->nom}";
+        return $this->prenom . ' ' . $this->nom;
     }
 
     public function getAgeAttribute()
     {
-        return $this->date_naissance->age;
+        return $this->date_naissance ? $this->date_naissance->age : null;
     }
 }

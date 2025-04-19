@@ -11,15 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Supprimer d'abord la table si elle existe
-        Schema::dropIfExists('formation_participant');
-
-        // Recréer la table avec les bonnes relations
         Schema::create('formation_participant', function (Blueprint $table) {
             $table->id();
             $table->foreignId('formation_id')->constrained()->onDelete('cascade');
             $table->foreignId('participant_id')->constrained()->onDelete('cascade');
-            $table->string('statut')->default('en attente');
+            $table->enum('statut', ['en_attente', 'inscrit', 'termine', 'abandonne'])->default('en_attente');
             $table->timestamp('date_inscription')->nullable();
             $table->timestamps();
 

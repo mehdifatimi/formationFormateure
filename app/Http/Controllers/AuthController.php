@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
-use Illuminate\Validation\ValidationException;
+use App\Models\Role;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
@@ -15,91 +15,52 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         try {
-            Log::info('Login attempt', [
+            Log::info('Tentative de connexion', [
                 'email' => $request->email,
-                'ip' => $request->ip()
+                'request_data' => $request->all()
             ]);
 
-            // Validation des données
             $validator = Validator::make($request->all(), [
                 'email' => 'required|email',
-                'password' => 'required|string|min:6',
+                'password' => 'required'
             ]);
 
             if ($validator->fails()) {
-                Log::warning('Login validation failed', [
-                    'errors' => $validator->errors()->toArray(),
-                    'email' => $request->email
+                Log::warning('Validation échouée', [
+                    'errors' => $validator->errors()->toArray()
                 ]);
                 return response()->json([
-                    'message' => 'Validation failed',
+                    'message' => 'Erreur de validation',
                     'errors' => $validator->errors()
-                ], 422)->withHeaders([
-                    'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                    'Access-Control-Allow-Credentials' => 'true',
-                    'Access-Control-Allow-Methods' => 'POST, OPTIONS',
-                    'Access-Control-Allow-Headers' => 'Content-Type, Authorization, X-Requested-With'
-                ]);
+                ], 422);
             }
 
-            $credentials = $request->only('email', 'password');
-
-            if (!Auth::attempt($credentials)) {
-                Log::warning('Login failed: Invalid credentials', [
-                    'email' => $request->email,
-                    'ip' => $request->ip()
-                ]);
+            if (!Auth::attempt($request->only('email', 'password'))) {
+                Log::warning('Connexion échouée');
                 return response()->json([
-                    'message' => 'Invalid credentials',
-                    'errors' => [
-                        'email' => ['The provided credentials are incorrect.']
-                    ]
-                ], 422)->withHeaders([
-                    'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                    'Access-Control-Allow-Credentials' => 'true',
-                    'Access-Control-Allow-Methods' => 'POST, OPTIONS',
-                    'Access-Control-Allow-Headers' => 'Content-Type, Authorization, X-Requested-With'
-                ]);
+                    'message' => 'Identifiants invalides'
+                ], 422);
             }
 
             $user = Auth::user();
             $token = $user->createToken('auth-token')->plainTextToken;
 
-            Log::info('Login successful', [
-                'user_id' => $user->id,
-                'email' => $user->email,
-                'role' => $user->role
+            Log::info('Connexion réussie', [
+                'user_id' => $user->id
             ]);
 
             return response()->json([
-                'user' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'role' => $user->role
-                ],
                 'token' => $token,
-            ])->withHeaders([
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Credentials' => 'true',
-                'Access-Control-Allow-Methods' => 'POST, OPTIONS',
-                'Access-Control-Allow-Headers' => 'Content-Type, Authorization, X-Requested-With'
+                'user' => $user
             ]);
         } catch (\Exception $e) {
-            Log::error('Login error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'email' => $request->email ?? 'unknown'
+            Log::error('Erreur de connexion', [
+                'error' => $e->getMessage()
             ]);
             return response()->json([
-                'message' => 'An error occurred during login',
+                'message' => 'Erreur de connexion',
                 'error' => $e->getMessage()
-            ], 500)->withHeaders([
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Credentials' => 'true',
-                'Access-Control-Allow-Methods' => 'POST, OPTIONS',
-                'Access-Control-Allow-Headers' => 'Content-Type, Authorization, X-Requested-With'
-            ]);
+            ], 500);
         }
     }
 
@@ -107,25 +68,15 @@ class AuthController extends Controller
     {
         try {
             $request->user()->currentAccessToken()->delete();
-            return response()->json([
-                'message' => 'Logged out successfully'
-            ])->withHeaders([
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Credentials' => 'true',
-                'Access-Control-Allow-Methods' => 'POST, OPTIONS',
-                'Access-Control-Allow-Headers' => 'Content-Type, Authorization, X-Requested-With'
-            ]);
+            return response()->json(['message' => 'Déconnexion réussie']);
         } catch (\Exception $e) {
-            Log::error('Logout error: ' . $e->getMessage());
-            return response()->json([
-                'message' => 'An error occurred during logout',
+            Log::error('Erreur de déconnexion', [
                 'error' => $e->getMessage()
-            ], 500)->withHeaders([
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Credentials' => 'true',
-                'Access-Control-Allow-Methods' => 'POST, OPTIONS',
-                'Access-Control-Allow-Headers' => 'Content-Type, Authorization, X-Requested-With'
             ]);
+            return response()->json([
+                'message' => 'Erreur de déconnexion',
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
 
@@ -142,8 +93,14 @@ class AuthController extends Controller
                 'name' => $validated['name'],
                 'email' => $validated['email'],
                 'password' => $validated['password'],
-                'role' => 'user'
+                'role' => 'formateur_participant' // Rôle par défaut
             ]);
+
+            // Attribution du rôle par défaut
+            $role = Role::where('slug', 'formateur_participant')->first();
+            if ($role) {
+                $user->syncRoles([$role]);
+            }
 
             $token = $user->createToken('auth-token')->plainTextToken;
 
@@ -152,7 +109,8 @@ class AuthController extends Controller
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
-                    'role' => $user->role
+                    'role' => $user->role,
+                    'permissions' => $user->getAllPermissions()->pluck('slug')
                 ],
                 'token' => $token,
             ], 201)->withHeaders([
@@ -211,4 +169,4 @@ class AuthController extends Controller
             ]);
         }
     }
-} 
+}

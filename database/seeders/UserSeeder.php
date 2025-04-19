@@ -5,6 +5,8 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
+use App\Models\Role;
+use App\Models\Permission;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -13,17 +15,13 @@ class UserSeeder extends Seeder
     public function run()
     {
         try {
+            // Récupérer les rôles existants
+            $adminRole = Role::where('slug', 'admin')->firstOrFail();
+            $formateurRole = Role::where('slug', 'formateur_animateur')->firstOrFail();
+            $participantRole = Role::where('slug', 'formateur_participant')->firstOrFail();
+
             // Vérifier si la table est vide
             if (User::count() === 0) {
-                // Create test user
-                $user = User::create([
-                    'name' => 'Test User',
-                    'email' => 'test@example.com',
-                    'password' => Hash::make('password123'),
-                    'role' => 'user'
-                ]);
-                Log::info('Test user created', ['email' => $user->email]);
-
                 // Create admin user
                 $admin = User::create([
                     'name' => 'Admin User',
@@ -31,36 +29,51 @@ class UserSeeder extends Seeder
                     'password' => Hash::make('admin123'),
                     'role' => 'admin'
                 ]);
+                $admin->syncRoles([$adminRole]);
                 Log::info('Admin user created', ['email' => $admin->email]);
 
-                // Create manager user
-                $manager = User::create([
-                    'name' => 'Manager User',
-                    'email' => 'manager@example.com',
-                    'password' => Hash::make('manager123'),
-                    'role' => 'manager'
-                ]);
-                Log::info('Manager user created', ['id' => $manager->id, 'email' => $manager->email]);
+                // Create formateurs
+                $formateurs = [
+                    [
+                        'name' => 'Jean Dupont',
+                        'email' => 'jean.dupont@example.com',
+                        'password' => Hash::make('password123'),
+                        'role' => 'formateur',
+                        'specialite' => 'Développement Web',
+                    ],
+                    [
+                        'name' => 'Marie Martin',
+                        'email' => 'marie.martin@example.com',
+                        'password' => Hash::make('password123'),
+                        'role' => 'formateur',
+                        'specialite' => 'Design UI/UX',
+                    ],
+                ];
 
-                // Create regular user
-                $regularUser = User::create([
-                    'name' => 'Regular User',
-                    'email' => 'user@example.com',
-                    'password' => Hash::make('user123'),
-                    'role' => 'user'
-                ]);
-                Log::info('Regular user created', ['id' => $regularUser->id, 'email' => $regularUser->email]);
+                foreach ($formateurs as $formateurData) {
+                    $formateur = User::create($formateurData);
+                    $formateur->syncRoles([$formateurRole]);
+                }
 
-                // Verify users were created
-                $users = User::all();
-                Log::info('Total users in database: ' . $users->count());
-                foreach ($users as $user) {
-                    Log::info('User found:', [
-                        'id' => $user->id,
-                        'name' => $user->name,
-                        'email' => $user->email,
-                        'role' => $user->role
-                    ]);
+                // Create participants
+                $participants = [
+                    [
+                        'name' => 'Lucas Petit',
+                        'email' => 'lucas.petit@example.com',
+                        'password' => Hash::make('password123'),
+                        'role' => 'participant',
+                    ],
+                    [
+                        'name' => 'Emma Robert',
+                        'email' => 'emma.robert@example.com',
+                        'password' => Hash::make('password123'),
+                        'role' => 'participant',
+                    ],
+                ];
+
+                foreach ($participants as $participantData) {
+                    $participant = User::create($participantData);
+                    $participant->syncRoles([$participantRole]);
                 }
             }
         } catch (\Exception $e) {

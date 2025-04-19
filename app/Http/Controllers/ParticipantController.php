@@ -31,28 +31,21 @@ class ParticipantController extends Controller
                 'nom' => 'required|string|max:255',
                 'prenom' => 'required|string|max:255',
                 'email' => 'required|email|unique:participants',
-                'telephone' => 'required|string|max:20',
-                'date_naissance' => 'required|date',
-                'niveau_etude' => 'required|string',
+                'telephone' => 'nullable|string|max:20',
+                'date_naissance' => 'nullable|date',
+                'niveau_etude' => 'nullable|string',
                 'attentes' => 'nullable|string',
-                'statut_paiement' => 'required|string|in:en attente,payé,annulé,remboursé'
+                'statut_paiement' => 'nullable|string|in:en_attente,paye,annule'
             ]);
 
             Log::info('Données validées:', $validated);
 
-            // Convertir la date au format Y-m-d
-            $validated['date_naissance'] = date('Y-m-d', strtotime($validated['date_naissance']));
+            // Convertir la date au format Y-m-d si elle est fournie
+            if (isset($validated['date_naissance'])) {
+                $validated['date_naissance'] = date('Y-m-d', strtotime($validated['date_naissance']));
+            }
 
-            $participant = Participant::create([
-                'nom' => $validated['nom'],
-                'prenom' => $validated['prenom'],
-                'email' => $validated['email'],
-                'telephone' => $validated['telephone'],
-                'date_naissance' => $validated['date_naissance'],
-                'niveau_etude' => $validated['niveau_etude'],
-                'attentes' => $validated['attentes'] ?? null,
-                'statut_paiement' => $validated['statut_paiement']
-            ]);
+            $participant = Participant::create($validated);
 
             Log::info('Participant créé:', ['id' => $participant->id]);
 
@@ -91,28 +84,19 @@ class ParticipantController extends Controller
                 'nom' => 'required|string|max:255',
                 'prenom' => 'required|string|max:255',
                 'email' => 'required|email|unique:participants,email,' . $participant->id,
-                'telephone' => 'required|string|max:20',
-                'date_naissance' => 'required|date',
-                'niveau_etude' => 'required|string',
+                'telephone' => 'nullable|string|max:20',
+                'date_naissance' => 'nullable|date',
+                'niveau_etude' => 'nullable|string',
                 'attentes' => 'nullable|string',
-                'statut_paiement' => 'required|string|in:en attente,payé,annulé,remboursé'
+                'statut_paiement' => 'nullable|string|in:en_attente,paye,annule'
             ]);
 
-            Log::info('Données validées:', $validated);
+            // Convertir la date au format Y-m-d si elle est fournie
+            if (isset($validated['date_naissance'])) {
+                $validated['date_naissance'] = date('Y-m-d', strtotime($validated['date_naissance']));
+            }
 
-            // Convertir la date au format Y-m-d
-            $validated['date_naissance'] = date('Y-m-d', strtotime($validated['date_naissance']));
-
-            $participant->update([
-                'nom' => $validated['nom'],
-                'prenom' => $validated['prenom'],
-                'email' => $validated['email'],
-                'telephone' => $validated['telephone'],
-                'date_naissance' => $validated['date_naissance'],
-                'niveau_etude' => $validated['niveau_etude'],
-                'attentes' => $validated['attentes'] ?? null,
-                'statut_paiement' => $validated['statut_paiement']
-            ]);
+            $participant->update($validated);
 
             Log::info('Participant mis à jour:', ['id' => $participant->id]);
 
@@ -134,73 +118,149 @@ class ParticipantController extends Controller
     {
         try {
             DB::beginTransaction();
-            
-            Log::info('Suppression du participant:', ['id' => $participant->id]);
-            
+
             $participant->delete();
-            
+
+            Log::info('Participant supprimé:', ['id' => $participant->id]);
+
             DB::commit();
             return response()->json(null, 204);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Erreur lors de la suppression du participant: ' . $e->getMessage());
             Log::error('Stack trace:', ['trace' => $e->getTraceAsString()]);
-            return response()->json(['message' => 'Erreur lors de la suppression du participant'], 500);
+            return response()->json(['message' => 'Erreur lors de la suppression du participant: ' . $e->getMessage()], 500);
         }
     }
 
     public function attachFormation(Request $request, Participant $participant)
     {
         try {
+            DB::beginTransaction();
+
             $validated = $request->validate([
-                'formation_id' => 'required|exists:formations,id',
-                'statut' => 'required|string|in:en attente,inscrit,annulé'
+                'formation_id' => 'required|exists:formations,id'
             ]);
 
+            // Vérifier si le participant existe
+            if (!$participant) {
+                DB::rollBack();
+                return response()->json([
+                    'message' => 'Participant non trouvé'
+                ], 404);
+            }
+
+            // Vérifier si la formation existe
+            $formation = Formation::find($validated['formation_id']);
+            if (!$formation) {
+                DB::rollBack();
+                return response()->json([
+                    'message' => 'Formation non trouvée'
+                ], 404);
+            }
+
+            // Vérifier si le participant n'est pas déjà inscrit à cette formation
+            if ($participant->formations()->where('formation_id', $validated['formation_id'])->exists()) {
+                DB::rollBack();
+                return response()->json([
+                    'message' => 'Le participant est déjà inscrit à cette formation'
+                ], 422);
+            }
+
+            // Vérifier si la formation a des places disponibles
+            $participantsCount = $formation->participants()->count();
+            if ($participantsCount >= $formation->places_disponibles) {
+                DB::rollBack();
+                return response()->json([
+                    'message' => 'La formation est complète, il n\'y a plus de places disponibles'
+                ], 422);
+            }
+
+            // Ajouter le participant à la formation avec le statut par défaut
             $participant->formations()->attach($validated['formation_id'], [
-                'statut' => $validated['statut'],
+                'statut' => 'en_attente',
                 'date_inscription' => now()
             ]);
 
-            return response()->json($participant->load('formations'));
+            Log::info('Formation attachée au participant:', [
+                'participant_id' => $participant->id,
+                'formation_id' => $validated['formation_id']
+            ]);
+
+            DB::commit();
+            return response()->json([
+                'message' => 'Participant ajouté à la formation avec succès',
+                'participant' => $participant->load('formations')
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            DB::rollBack();
+            Log::error('Erreur de validation lors de l\'attachement de la formation:', [
+                'errors' => $e->errors()
+            ]);
+            return response()->json([
+                'message' => 'Erreur de validation',
+                'errors' => $e->errors()
+            ], 422);
         } catch (\Exception $e) {
-            Log::error('Erreur lors de l\'inscription à la formation: ' . $e->getMessage());
-            return response()->json(['message' => 'Erreur lors de l\'inscription à la formation'], 500);
+            DB::rollBack();
+            Log::error('Erreur lors de l\'attachement de la formation: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Erreur lors de l\'attachement de la formation',
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
 
     public function detachFormation(Request $request, Participant $participant)
     {
         try {
+            DB::beginTransaction();
+
             $validated = $request->validate([
                 'formation_id' => 'required|exists:formations,id'
             ]);
 
             $participant->formations()->detach($validated['formation_id']);
 
+            Log::info('Formation détachée du participant:', [
+                'participant_id' => $participant->id,
+                'formation_id' => $validated['formation_id']
+            ]);
+
+            DB::commit();
             return response()->json($participant->load('formations'));
         } catch (\Exception $e) {
-            Log::error('Erreur lors de la désinscription de la formation: ' . $e->getMessage());
-            return response()->json(['message' => 'Erreur lors de la désinscription de la formation'], 500);
+            DB::rollBack();
+            Log::error('Erreur lors du détachement de la formation: ' . $e->getMessage());
+            return response()->json(['message' => 'Erreur lors du détachement de la formation: ' . $e->getMessage()], 500);
         }
     }
 
     public function updateFormationStatus(Request $request, Participant $participant, Formation $formation)
     {
         try {
+            DB::beginTransaction();
+
             $validated = $request->validate([
-                'formation_id' => 'required|exists:formations,id',
-                'statut' => 'required|string|in:en attente,inscrit,annulé'
+                'statut' => 'required|string|in:en_attente,inscrit,termine,abandonne'
             ]);
 
-            $participant->formations()->updateExistingPivot($validated['formation_id'], [
+            $participant->formations()->updateExistingPivot($formation->id, [
                 'statut' => $validated['statut']
             ]);
 
+            Log::info('Statut de formation mis à jour:', [
+                'participant_id' => $participant->id,
+                'formation_id' => $formation->id,
+                'statut' => $validated['statut']
+            ]);
+
+            DB::commit();
             return response()->json($participant->load('formations'));
         } catch (\Exception $e) {
-            Log::error('Erreur lors de la mise à jour du statut: ' . $e->getMessage());
-            return response()->json(['message' => 'Erreur lors de la mise à jour du statut'], 500);
+            DB::rollBack();
+            Log::error('Erreur lors de la mise à jour du statut de formation: ' . $e->getMessage());
+            return response()->json(['message' => 'Erreur lors de la mise à jour du statut de formation: ' . $e->getMessage()], 500);
         }
     }
 
@@ -212,68 +272,25 @@ class ParticipantController extends Controller
     public function getProgress()
     {
         try {
-            // Get all participants with their formations, absences, and evaluations
-            $participants = Participant::with([
-                'formations' => function($query) {
-                    $query->select('formations.id', 'formations.titre', 'formations.date_debut', 'formations.date_fin');
-                },
-                'formations.pivot' => function($query) {
-                    $query->select('formation_participant.participant_id', 'formation_participant.formation_id', 'formation_participant.statut');
-                }
-            ])->get();
+            $total = Participant::count();
+            $inscrits = DB::table('formation_participant')
+                ->where('statut', 'inscrit')
+                ->distinct('participant_id')
+                ->count();
+            $termines = DB::table('formation_participant')
+                ->where('statut', 'termine')
+                ->distinct('participant_id')
+                ->count();
 
-            // Process the data to include progress metrics
-            $progressData = $participants->map(function($participant) {
-                $totalFormations = $participant->formations->count();
-                $completedFormations = $participant->formations->filter(function($formation) {
-                    return $formation->pivot->statut === 'terminé';
-                })->count();
-                
-                $absences = $participant->formations->filter(function($formation) {
-                    return $formation->pivot->statut === 'absent';
-                })->count();
-                
-                $absenceRate = $totalFormations > 0 ? ($absences / $totalFormations) * 100 : 0;
-                
-                // Calculate average evaluation score (placeholder - would need an evaluations table)
-                $evaluationScore = 0; // This would be calculated from actual evaluation data
-                
-                return [
-                    'id' => $participant->id,
-                    'nom' => $participant->nom,
-                    'prenom' => $participant->prenom,
-                    'email' => $participant->email,
-                    'total_formations' => $totalFormations,
-                    'completed_formations' => $completedFormations,
-                    'absences' => $absences,
-                    'absence_rate' => round($absenceRate, 2),
-                    'evaluation_score' => $evaluationScore,
-                    'formations' => $participant->formations->map(function($formation) {
-                        return [
-                            'id' => $formation->id,
-                            'titre' => $formation->titre,
-                            'date_debut' => $formation->date_debut,
-                            'date_fin' => $formation->date_fin,
-                            'statut' => $formation->pivot->statut
-                        ];
-                    })
-                ];
-            });
-
-            return response()->json($progressData)->withHeaders([
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Credentials' => 'true',
-                'Access-Control-Allow-Methods' => 'GET, OPTIONS',
-                'Access-Control-Allow-Headers' => 'Content-Type, Authorization, X-Requested-With'
+            return response()->json([
+                'total' => $total,
+                'inscrits' => $inscrits,
+                'termines' => $termines,
+                'taux_reussite' => $total > 0 ? round(($termines / $total) * 100, 2) : 0
             ]);
         } catch (\Exception $e) {
-            Log::error('Erreur lors de la récupération des données de progression: ' . $e->getMessage());
-            return response()->json(['message' => 'Erreur lors de la récupération des données de progression'], 500)->withHeaders([
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Credentials' => 'true',
-                'Access-Control-Allow-Methods' => 'GET, OPTIONS',
-                'Access-Control-Allow-Headers' => 'Content-Type, Authorization, X-Requested-With'
-            ]);
+            Log::error('Erreur lors de la récupération des statistiques: ' . $e->getMessage());
+            return response()->json(['message' => 'Erreur lors de la récupération des statistiques: ' . $e->getMessage()], 500);
         }
     }
 } 

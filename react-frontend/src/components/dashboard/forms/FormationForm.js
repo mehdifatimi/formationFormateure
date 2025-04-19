@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Form, Input, DatePicker, InputNumber, Select, Button, Space } from 'antd';
+import { Form, Input, DatePicker, InputNumber, Select, Button, Space, message } from 'antd';
 import api from '../../../services/api';
+import moment from 'moment';
 
 const { TextArea } = Input;
 const { RangePicker } = DatePicker;
@@ -8,14 +9,18 @@ const { RangePicker } = DatePicker;
 const FormationForm = ({ initialValues, onFinish, onCancel }) => {
     const [form] = Form.useForm();
     const [formateurs, setFormateurs] = useState([]);
+    const [participants, setParticipants] = useState([]);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         fetchFormateurs();
+        fetchParticipants();
         if (initialValues) {
             form.setFieldsValue({
                 ...initialValues,
-                dates: [initialValues.date_debut, initialValues.date_fin],
+                dates: [moment(initialValues.date_debut), moment(initialValues.date_fin)],
+                formateur_id: initialValues.formateur?.id,
+                participants: initialValues.participants?.map(p => p.id) || []
             });
         }
     }, [initialValues, form]);
@@ -26,22 +31,32 @@ const FormationForm = ({ initialValues, onFinish, onCancel }) => {
             setFormateurs(response.data);
         } catch (error) {
             console.error('Erreur lors du chargement des formateurs:', error);
+            message.error('Erreur lors du chargement des formateurs');
+        }
+    };
+
+    const fetchParticipants = async () => {
+        try {
+            const response = await api.get('/participants');
+            setParticipants(response.data);
+        } catch (error) {
+            console.error('Erreur lors du chargement des participants:', error);
+            message.error('Erreur lors du chargement des participants');
         }
     };
 
     const handleSubmit = async (values) => {
         setLoading(true);
         try {
-            const [date_debut, date_fin] = values.dates;
+            const [dateDebut, dateFin] = values.dates;
             const formationData = {
                 ...values,
-                date_debut: date_debut.format('YYYY-MM-DD'),
-                date_fin: date_fin.format('YYYY-MM-DD'),
+                date_debut: dateDebut.format('YYYY-MM-DD'),
+                date_fin: dateFin.format('YYYY-MM-DD'),
             };
-            delete formationData.dates;
             await onFinish(formationData);
         } catch (error) {
-            console.error('Erreur lors de la sauvegarde:', error);
+            console.error('Erreur lors de la soumission:', error);
         }
         setLoading(false);
     };
@@ -51,9 +66,6 @@ const FormationForm = ({ initialValues, onFinish, onCancel }) => {
             form={form}
             layout="vertical"
             onFinish={handleSubmit}
-            initialValues={{
-                statut: 'planifiee',
-            }}
         >
             <Form.Item
                 name="titre"
@@ -86,9 +98,9 @@ const FormationForm = ({ initialValues, onFinish, onCancel }) => {
             >
                 <InputNumber
                     style={{ width: '100%' }}
-                    min={0}
                     formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                     parser={value => value.replace(/\$\s?|(,*)/g, '')}
+                    min={0}
                 />
             </Form.Item>
 
@@ -115,15 +127,19 @@ const FormationForm = ({ initialValues, onFinish, onCancel }) => {
             </Form.Item>
 
             <Form.Item
-                name="statut"
-                label="Statut"
-                rules={[{ required: true, message: 'Veuillez sélectionner le statut' }]}
+                name="participants"
+                label="Participants"
             >
-                <Select>
-                    <Select.Option value="planifiee">Planifiée</Select.Option>
-                    <Select.Option value="en_cours">En cours</Select.Option>
-                    <Select.Option value="terminee">Terminée</Select.Option>
-                    <Select.Option value="annulee">Annulée</Select.Option>
+                <Select
+                    mode="multiple"
+                    placeholder="Sélectionnez les participants"
+                    optionFilterProp="children"
+                >
+                    {participants.map(participant => (
+                        <Select.Option key={participant.id} value={participant.id}>
+                            {participant.nom} {participant.prenom}
+                        </Select.Option>
+                    ))}
                 </Select>
             </Form.Item>
 
@@ -141,4 +157,4 @@ const FormationForm = ({ initialValues, onFinish, onCancel }) => {
     );
 };
 
-export default FormationForm; 
+export default FormationForm;

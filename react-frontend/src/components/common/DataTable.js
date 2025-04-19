@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { Card, Table, Input, Space } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
 import FilterBar from './FilterBar';
@@ -17,8 +17,10 @@ const DataTable = ({
     showDateRange,
     dateRangeField,
     extra,
+    onSearch,
 }) => {
     const { filters: currentFilters, updateFilters, resetFilters } = useFilter(filters);
+    const [searchText, setSearchText] = useState('');
 
     const handleFilter = (values) => {
         updateFilters(values);
@@ -30,10 +32,22 @@ const DataTable = ({
         onFilter?.({});
     };
 
-    const handleSearch = (value) => {
-        // Implémenter la recherche si nécessaire
-        console.log('Recherche:', value);
-    };
+    const handleSearch = useCallback((value) => {
+        setSearchText(value);
+        if (onSearch) {
+            onSearch(value);
+        }
+    }, [onSearch]);
+
+    const filteredData = useCallback(() => {
+        if (!searchText) return dataSource;
+
+        return dataSource.filter(item => {
+            return Object.values(item).some(val => 
+                val && val.toString().toLowerCase().includes(searchText.toLowerCase())
+            );
+        });
+    }, [dataSource, searchText]);
 
     return (
         <Card
@@ -51,7 +65,9 @@ const DataTable = ({
                         allowClear
                         enterButton={<SearchOutlined />}
                         onSearch={handleSearch}
+                        onChange={(e) => setSearchText(e.target.value)}
                         style={{ width: 300 }}
+                        value={searchText}
                     />
                 </Space>
 
@@ -67,14 +83,18 @@ const DataTable = ({
 
                 <Table
                     columns={columns}
-                    dataSource={dataSource}
+                    dataSource={filteredData()}
                     loading={loading}
                     rowKey="id"
                     pagination={{
                         pageSize: 10,
                         showSizeChanger: true,
                         showTotal: (total) => `Total ${total} éléments`,
+                        showQuickJumper: true,
+                        showSizeChanger: true,
+                        pageSizeOptions: ['10', '20', '50', '100'],
                     }}
+                    scroll={{ x: 'max-content' }}
                 />
             </Space>
         </Card>

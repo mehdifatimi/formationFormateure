@@ -21,9 +21,11 @@ const ParticipantList = () => {
             const response = await api.get('/participants');
             setParticipants(response.data);
         } catch (error) {
+            console.error('Erreur lors du chargement des participants:', error);
             message.error('Erreur lors du chargement des participants');
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     const handleAdd = () => {
@@ -42,7 +44,8 @@ const ParticipantList = () => {
             message.success('Participant supprimé avec succès');
             fetchParticipants();
         } catch (error) {
-            message.error('Erreur lors de la suppression');
+            console.error('Erreur lors de la suppression:', error);
+            message.error('Erreur lors de la suppression du participant');
         }
     };
 
@@ -58,7 +61,12 @@ const ParticipantList = () => {
             setModalVisible(false);
             fetchParticipants();
         } catch (error) {
-            message.error('Erreur lors de la sauvegarde');
+            console.error('Erreur lors de la sauvegarde:', error);
+            if (error.response?.data?.errors) {
+                message.error('Veuillez corriger les erreurs dans le formulaire');
+            } else {
+                message.error('Erreur lors de la sauvegarde du participant');
+            }
         }
     };
 
@@ -67,11 +75,13 @@ const ParticipantList = () => {
             title: 'Nom',
             dataIndex: 'nom',
             key: 'nom',
+            sorter: (a, b) => a.nom.localeCompare(b.nom),
         },
         {
             title: 'Prénom',
             dataIndex: 'prenom',
             key: 'prenom',
+            sorter: (a, b) => a.prenom.localeCompare(b.prenom),
         },
         {
             title: 'Email',
@@ -89,32 +99,19 @@ const ParticipantList = () => {
             key: 'ville',
         },
         {
-            title: 'Statut',
-            dataIndex: 'statut',
-            key: 'statut',
+            title: 'Statut Paiement',
+            dataIndex: 'statut_paiement',
+            key: 'statut_paiement',
             render: (statut) => (
                 <Tag color={
-                    statut === 'actif' ? 'green' :
-                    statut === 'inactif' ? 'red' :
-                    'default'
+                    statut === 'paye' ? 'green' :
+                    statut === 'annule' ? 'red' :
+                    'orange'
                 }>
-                    {statut === 'actif' ? 'Actif' :
-                     statut === 'inactif' ? 'Inactif' :
+                    {statut === 'paye' ? 'Payé' :
+                     statut === 'annule' ? 'Annulé' :
                      'En attente'}
                 </Tag>
-            ),
-        },
-        {
-            title: 'Formations',
-            key: 'formations',
-            render: (_, record) => (
-                <Space>
-                    {record.formations?.map(formation => (
-                        <Tag key={formation.id} color="blue">
-                            {formation.titre}
-                        </Tag>
-                    ))}
-                </Space>
             ),
         },
         {
@@ -130,9 +127,18 @@ const ParticipantList = () => {
                         Modifier
                     </Button>
                     <Button
-                        type="danger"
+                        danger
                         icon={<DeleteOutlined />}
-                        onClick={() => handleDelete(record.id)}
+                        onClick={() => {
+                            Modal.confirm({
+                                title: 'Êtes-vous sûr de vouloir supprimer ce participant ?',
+                                content: 'Cette action est irréversible.',
+                                okText: 'Oui',
+                                okType: 'danger',
+                                cancelText: 'Non',
+                                onOk: () => handleDelete(record.id),
+                            });
+                        }}
                     >
                         Supprimer
                     </Button>
@@ -166,6 +172,7 @@ const ParticipantList = () => {
                 onCancel={() => setModalVisible(false)}
                 footer={null}
                 width={800}
+                destroyOnClose
             >
                 <ParticipantForm
                     initialValues={editingParticipant}

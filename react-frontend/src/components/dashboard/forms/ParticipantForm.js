@@ -11,12 +11,10 @@ const { Option } = Select;
 
 const ParticipantForm = ({ initialValues, onFinish, onCancel }) => {
     const [form] = Form.useForm();
-    const [formations, setFormations] = useState([]);
     const [loading, setLoading] = useState(false);
     const [formErrors, setFormErrors] = useState({});
 
     useEffect(() => {
-        fetchFormations();
         if (initialValues) {
             const formattedValues = {
                 ...initialValues,
@@ -25,15 +23,6 @@ const ParticipantForm = ({ initialValues, onFinish, onCancel }) => {
             form.setFieldsValue(formattedValues);
         }
     }, [initialValues, form]);
-
-    const fetchFormations = async () => {
-        try {
-            const response = await api.get('/formations');
-            setFormations(response.data);
-        } catch (error) {
-            console.error('Erreur lors du chargement des formations:', error);
-        }
-    };
 
     const handleSubmit = async (values) => {
         setLoading(true);
@@ -69,7 +58,7 @@ const ParticipantForm = ({ initialValues, onFinish, onCancel }) => {
             layout="vertical"
             onFinish={handleSubmit}
             initialValues={{
-                statut_paiement: 'en attente',
+                statut_paiement: 'en_attente',
             }}
             className="participant-form"
         >
@@ -123,7 +112,6 @@ const ParticipantForm = ({ initialValues, onFinish, onCancel }) => {
                     </span>
                 }
                 rules={[
-                    { required: true, message: 'Le téléphone est requis' },
                     { validator: validatePhone }
                 ]}
                 validateStatus={formErrors.telephone ? 'error' : ''}
@@ -135,7 +123,6 @@ const ParticipantForm = ({ initialValues, onFinish, onCancel }) => {
             <Form.Item
                 name="date_naissance"
                 label="Date de naissance"
-                rules={[{ required: true, message: 'La date de naissance est requise' }]}
                 validateStatus={formErrors.date_naissance ? 'error' : ''}
                 help={formErrors.date_naissance}
             >
@@ -152,7 +139,6 @@ const ParticipantForm = ({ initialValues, onFinish, onCancel }) => {
             <Form.Item
                 name="ville"
                 label="Ville"
-                rules={[{ required: true, message: 'Veuillez sélectionner la ville' }]}
             >
                 <Select>
                     <Select.Option value="paris">Paris</Select.Option>
@@ -163,26 +149,8 @@ const ParticipantForm = ({ initialValues, onFinish, onCancel }) => {
             </Form.Item>
 
             <Form.Item
-                name="formations"
-                label="Formations"
-            >
-                <Select
-                    mode="multiple"
-                    placeholder="Sélectionnez les formations"
-                    style={{ width: '100%' }}
-                >
-                    {formations.map(formation => (
-                        <Select.Option key={formation.id} value={formation.id}>
-                            {formation.titre}
-                        </Select.Option>
-                    ))}
-                </Select>
-            </Form.Item>
-
-            <Form.Item
                 name="niveau_etude"
                 label="Niveau d'étude"
-                rules={[{ required: true, message: 'Le niveau d\'étude est requis' }]}
                 validateStatus={formErrors.niveau_etude ? 'error' : ''}
                 help={formErrors.niveau_etude}
             >
@@ -218,10 +186,9 @@ const ParticipantForm = ({ initialValues, onFinish, onCancel }) => {
                 help={formErrors.statut_paiement}
             >
                 <Select placeholder="Sélectionnez le statut du paiement">
-                    <Option value="en attente">En attente</Option>
-                    <Option value="payé">Payé</Option>
-                    <Option value="annulé">Annulé</Option>
-                    <Option value="remboursé">Remboursé</Option>
+                    <Option value="en_attente">En attente</Option>
+                    <Option value="paye">Payé</Option>
+                    <Option value="annule">Annulé</Option>
                 </Select>
             </Form.Item>
 

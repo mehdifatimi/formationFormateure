@@ -11,7 +11,7 @@ const api = axios.create({
     withCredentials: true
 });
 
-// export default api;
+export default api;
 
 // Intercepteur pour les requêtes
 api.interceptors.request.use(
@@ -90,5 +90,3 @@ api.interceptors.response.use(
         return Promise.reject(error);
     }
 );
-
-export default api;

@@ -22,17 +22,10 @@ class Formation extends Model
         'description',
         'date_debut',
         'date_fin',
-        'duree',
-        'niveau',
-        'prix',
+        'formateur_id',
         'places_disponibles',
         'statut',
-        'formateur_id',
-        'ville_id',
-        'filiere_id',
-        'validation_status',
-        'validated_by',
-        'validated_at'
+        'created_by'
     ];
 
     /**
@@ -43,15 +36,7 @@ class Formation extends Model
     protected $casts = [
         'date_debut' => 'datetime',
         'date_fin' => 'datetime',
-        'duree' => 'integer',
-        'prix' => 'float',
-        'places_disponibles' => 'integer',
-        'validated_at' => 'datetime'
-    ];
-
-    protected $attributes = [
-        'statut' => 'en attente',
-        'validation_status' => 'en attente'
+        'places_disponibles' => 'integer'
     ];
 
     /**
@@ -59,7 +44,7 @@ class Formation extends Model
      */
     public function formateur(): BelongsTo
     {
-        return $this->belongsTo(Formateur::class);
+        return $this->belongsTo(User::class, 'formateur_id')->select(['id', 'name as nom', 'email']);
     }
 
     /**
@@ -91,24 +76,37 @@ class Formation extends Model
      */
     public function participants(): BelongsToMany
     {
-        return $this->belongsToMany(Participant::class, 'formation_participant')
-            ->withPivot('statut', 'date_inscription')
+        return $this->belongsToMany(Participant::class, 'formation_participant', 'formation_id', 'participant_id')
+            ->withPivot('statut')
             ->withTimestamps();
+    }
+
+    /**
+     * Get the absences for the formation.
+     */
+    public function absences(): HasMany
+    {
+        return $this->hasMany(Absence::class);
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 
     public function scopePendingValidation($query)
     {
-        return $query->where('validation_status', 'en attente');
+        return $query->where('statut', 'en_attente');
     }
 
     public function scopeValidated($query)
     {
-        return $query->where('validation_status', 'validé');
+        return $query->where('statut', 'validee');
     }
 
     public function scopeRejected($query)
     {
-        return $query->where('validation_status', 'rejeté');
+        return $query->where('statut', 'rejetee');
     }
 
     public function validate(User $validator)
@@ -118,7 +116,7 @@ class Formation extends Model
         }
 
         $this->update([
-            'validation_status' => 'validé',
+            'statut' => 'validee',
             'validated_by' => $validator->id,
             'validated_at' => now()
         ]);
@@ -131,9 +129,10 @@ class Formation extends Model
         }
 
         $this->update([
-            'validation_status' => 'rejeté',
+            'statut' => 'rejetee',
             'validated_by' => $validator->id,
-            'validated_at' => now()
+            'validated_at' => now(),
+            'rejection_reason' => $reason
         ]);
     }
 }

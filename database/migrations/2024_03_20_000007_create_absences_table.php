@@ -6,27 +6,22 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
-    public function up(): void
+    public function up()
     {
         Schema::create('absences', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('participant_id')->constrained()->onDelete('cascade');
+            $table->foreignId('participant_id')->constrained('users')->onDelete('cascade');
             $table->foreignId('formation_id')->constrained()->onDelete('cascade');
             $table->date('date');
-            $table->text('reason');
-            $table->enum('status', ['justified', 'unjustified'])->default('unjustified');
+            $table->string('motif');
+            $table->string('statut')->default('en_attente');
+            $table->text('commentaire')->nullable();
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
+    public function down()
     {
         Schema::dropIfExists('absences');
     }
-};
+}; 

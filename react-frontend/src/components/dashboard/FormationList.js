@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Space, Modal, message, Tag, Popover } from 'antd';
-import { EditOutlined, DeleteOutlined, PlusOutlined, UserOutlined } from '@ant-design/icons';
+import { Button, Space, Modal, message, Tag, Popover, Badge } from 'antd';
+import { EditOutlined, DeleteOutlined, PlusOutlined, UserOutlined, ClockCircleOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import FormationForm from './forms/FormationForm';
 import DataTable from '../common/DataTable';
 import api from '../../services/api';
@@ -10,9 +11,12 @@ const FormationList = () => {
     const [loading, setLoading] = useState(false);
     const [modalVisible, setModalVisible] = useState(false);
     const [editingFormation, setEditingFormation] = useState(null);
+    const [absences, setAbsences] = useState({});
+    const navigate = useNavigate();
 
     useEffect(() => {
         fetchFormations();
+        fetchAbsences();
     }, []);
 
     const fetchFormations = async () => {
@@ -24,6 +28,22 @@ const FormationList = () => {
             message.error('Erreur lors du chargement des formations');
         }
         setLoading(false);
+    };
+
+    const fetchAbsences = async () => {
+        try {
+            const response = await api.get('/absences');
+            const absencesMap = {};
+            response.data.forEach(absence => {
+                if (!absencesMap[absence.formation_id]) {
+                    absencesMap[absence.formation_id] = [];
+                }
+                absencesMap[absence.formation_id].push(absence);
+            });
+            setAbsences(absencesMap);
+        } catch (error) {
+            message.error('Erreur lors du chargement des absences');
+        }
     };
 
     const handleAdd = () => {
@@ -48,23 +68,77 @@ const FormationList = () => {
 
     const handleSave = async (values) => {
         try {
+            const { participants, ...formationData } = values;
+            
             if (editingFormation) {
-                await api.put(`/formations/${editingFormation.id}`, values);
+                // Mise à jour de la formation
+                await api.put(`/formations/${editingFormation.id}`, formationData);
+                
+                // Mise à jour des participants
+                if (participants && participants.length > 0) {
+                    // Récupérer les participants actuels
+                    const currentParticipants = editingFormation.participants || [];
+                    const currentParticipantIds = currentParticipants.map(p => p.id);
+                    
+                    // Ajouter les nouveaux participants
+                    for (const participantId of participants) {
+                        if (!currentParticipantIds.includes(participantId)) {
+                            try {
+                                await api.post(`/formations/${editingFormation.id}/participants/${participantId}`);
+                            } catch (error) {
+                                console.error(`Erreur lors de l'ajout du participant ${participantId}:`, error);
+                            }
+                        }
+                    }
+                    
+                    // Supprimer les participants qui ne sont plus dans la liste
+                    for (const participantId of currentParticipantIds) {
+                        if (!participants.includes(participantId)) {
+                            try {
+                                await api.delete(`/participants/${participantId}/formations/${editingFormation.id}`);
+                            } catch (error) {
+                                console.error(`Erreur lors de la suppression du participant ${participantId}:`, error);
+                            }
+                        }
+                    }
+                }
+                
                 message.success('Formation mise à jour avec succès');
             } else {
-                await api.post('/formations', values);
+                // Création de la formation
+                const response = await api.post('/formations', formationData);
+                const newFormationId = response.data.id;
+                
+                // Ajouter les participants
+                if (participants && participants.length > 0) {
+                    for (const participantId of participants) {
+                        try {
+                            await api.post(`/formations/${newFormationId}/participants/${participantId}`);
+                        } catch (error) {
+                            console.error(`Erreur lors de l'ajout du participant ${participantId}:`, error);
+                        }
+                    }
+                }
+                
                 message.success('Formation créée avec succès');
             }
+            
             setModalVisible(false);
             fetchFormations();
         } catch (error) {
-            message.error('Erreur lors de la sauvegarde');
+            console.error('Erreur lors de la sauvegarde:', error);
+            message.error('Erreur lors de la sauvegarde de la formation');
         }
     };
 
-    const renderParticipants = (participants) => {
-        if (!participants || participants.length === 0) {
-            return <span>Aucun participant</span>;
+    const handleManageAbsences = (formationId) => {
+        navigate(`/absences?formation_id=${formationId}`);
+    };
+
+    const renderParticipants = (record) => {
+        const participants = record.participants || [];
+        if (participants.length === 0) {
+            return <Tag color="warning">Aucun participant inscrit</Tag>;
         }
 
         return (
@@ -88,32 +162,69 @@ const FormationList = () => {
         );
     };
 
+    const renderAbsences = (record) => {
+        const absences = record.absences || [];
+        if (absences.length === 0) {
+            return <Tag color="success">Aucune absence</Tag>;
+        }
+
+        return (
+            <Popover
+                content={
+                    <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                        {absences.map((absence) => (
+                            <div key={absence.id}>
+                                {absence.participant ? 
+                                    `${absence.participant.nom} ${absence.participant.prenom}` : 
+                                    'Participant supprimé'} - {absence.date}
+                            </div>
+                        ))}
+                    </div>
+                }
+                title="Liste des absences"
+                trigger="hover"
+            >
+                <Badge count={absences.length} style={{ backgroundColor: '#52c41a' }}>
+                    <Button type="link" icon={<ClockCircleOutlined />}>
+                        Absences
+                    </Button>
+                </Badge>
+            </Popover>
+        );
+    };
+
     const columns = [
         {
             title: 'Titre',
             dataIndex: 'titre',
             key: 'titre',
+            sorter: (a, b) => a.titre.localeCompare(b.titre),
         },
         {
-            title: 'Date de début',
-            dataIndex: 'date_debut',
-            key: 'date_debut',
+            title: 'Dates',
+            key: 'dates',
+            render: (_, record) => (
+                <Space direction="vertical">
+                    <div>Début: {new Date(record.date_debut).toLocaleDateString()}</div>
+                    <div>Fin: {new Date(record.date_fin).toLocaleDateString()}</div>
+                </Space>
+            ),
         },
         {
-            title: 'Date de fin',
-            dataIndex: 'date_fin',
-            key: 'date_fin',
+            title: 'Formateur',
+            dataIndex: ['formateur', 'nom'],
+            key: 'formateur',
+            render: (_, record) => (
+                <span>
+                    {record.formateur?.nom} {record.formateur?.prenom}
+                </span>
+            ),
         },
         {
-            title: 'Prix',
-            dataIndex: 'prix',
-            key: 'prix',
-            render: (prix) => `${prix} €`,
-        },
-        {
-            title: 'Places disponibles',
+            title: 'Places',
             dataIndex: 'places_disponibles',
             key: 'places_disponibles',
+            sorter: (a, b) => a.places_disponibles - b.places_disponibles,
         },
         {
             title: 'Statut',
@@ -121,13 +232,13 @@ const FormationList = () => {
             key: 'statut',
             render: (statut) => (
                 <Tag color={
-                    statut === 'en_cours' ? 'green' :
-                    statut === 'terminee' ? 'blue' :
+                    statut === 'terminee' ? 'green' :
+                    statut === 'en_cours' ? 'blue' :
                     statut === 'annulee' ? 'red' :
-                    'default'
+                    'orange'
                 }>
-                    {statut === 'en_cours' ? 'En cours' :
-                     statut === 'terminee' ? 'Terminée' :
+                    {statut === 'terminee' ? 'Terminée' :
+                     statut === 'en_cours' ? 'En cours' :
                      statut === 'annulee' ? 'Annulée' :
                      'Planifiée'}
                 </Tag>
@@ -136,7 +247,12 @@ const FormationList = () => {
         {
             title: 'Participants',
             key: 'participants',
-            render: (_, record) => renderParticipants(record.participants),
+            render: (_, record) => renderParticipants(record),
+        },
+        {
+            title: 'Absences',
+            key: 'absences',
+            render: (_, record) => renderAbsences(record),
         },
         {
             title: 'Actions',
@@ -151,11 +267,25 @@ const FormationList = () => {
                         Modifier
                     </Button>
                     <Button
-                        type="danger"
+                        danger
                         icon={<DeleteOutlined />}
-                        onClick={() => handleDelete(record.id)}
+                        onClick={() => {
+                            Modal.confirm({
+                                title: 'Êtes-vous sûr de vouloir supprimer cette formation ?',
+                                content: 'Cette action est irréversible.',
+                                okText: 'Oui',
+                                okType: 'danger',
+                                cancelText: 'Non',
+                                onOk: () => handleDelete(record.id),
+                            });
+                        }}
                     >
                         Supprimer
+                    </Button>
+                    <Button
+                        onClick={() => handleManageAbsences(record.id)}
+                    >
+                        Gérer les absences
                     </Button>
                 </Space>
             ),
@@ -187,6 +317,7 @@ const FormationList = () => {
                 onCancel={() => setModalVisible(false)}
                 footer={null}
                 width={800}
+                destroyOnClose
             >
                 <FormationForm
                     initialValues={editingFormation}
@@ -198,4 +329,4 @@ const FormationList = () => {
     );
 };
 
-export default FormationList; 
+export default FormationList;

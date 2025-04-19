@@ -9,16 +9,14 @@ return new class extends Migration
     public function up()
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->string('role')->default('participant');
-            $table->string('specialite')->nullable();
+            $table->string('phone')->nullable()->after('email');
         });
     }
 
     public function down()
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('role');
-            $table->dropColumn('specialite');
+            $table->dropColumn('phone');
         });
     }
 }; 

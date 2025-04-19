@@ -20,7 +20,14 @@ const FormateurForm = ({ initialValues, onFinish, onCancel }) => {
 
     const handleSubmit = async (values) => {
         try {
-            await onFinish(values);
+            // Convertir la spécialité en tableau
+            const formData = {
+                ...values,
+                specialites: [values.specialite],
+                disponible: true
+            };
+            delete formData.specialite;
+            await onFinish(formData);
         } catch (error) {
             console.error('Erreur lors de la sauvegarde:', error);
         }
@@ -74,10 +81,11 @@ const FormateurForm = ({ initialValues, onFinish, onCancel }) => {
                 rules={[{ required: true, message: 'Veuillez sélectionner la spécialité' }]}
             >
                 <Select>
-                    <Select.Option value="developpement_web">Développement Web</Select.Option>
-                    <Select.Option value="design">Design</Select.Option>
-                    <Select.Option value="marketing_digital">Marketing Digital</Select.Option>
-                    <Select.Option value="gestion_projet">Gestion de Projet</Select.Option>
+                    {specialites.map(specialite => (
+                        <Select.Option key={specialite} value={specialite}>
+                            {specialite}
+                        </Select.Option>
+                    ))}
                 </Select>
             </Form.Item>
 
@@ -97,14 +105,6 @@ const FormateurForm = ({ initialValues, onFinish, onCancel }) => {
                 ]}
             >
                 <Input placeholder="https://www.linkedin.com/in/votre-profil" />
-            </Form.Item>
-
-            <Form.Item
-                name="disponible"
-                label="Disponible"
-                valuePropName="checked"
-            >
-                <Switch />
             </Form.Item>
 
             <Form.Item>
