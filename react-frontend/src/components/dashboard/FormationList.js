@@ -104,8 +104,25 @@ const FormationList = () => {
     const handleAbsenceSubmit = async () => {
         try {
             const today = new Date().toISOString().split('T')[0];
+            
+            // Vérifier si l'absence existe déjà pour cette date
+            const existingAbsences = await api.get('/absences', {
+                params: {
+                    formation_id: selectedFormation.id,
+                    date: today
+                }
+            });
+
+            const existingParticipantIds = existingAbsences.data.map(absence => absence.participant_id);
+            const newParticipants = selectedParticipants.filter(id => !existingParticipantIds.includes(id));
+
+            if (newParticipants.length === 0) {
+                message.warning('Tous les participants sélectionnés sont déjà marqués comme absents pour cette date');
+                return;
+            }
+
             await Promise.all(
-                selectedParticipants.map(participantId =>
+                newParticipants.map(participantId =>
                     api.post('/absences', {
                         participant_id: participantId,
                         formation_id: selectedFormation.id,
@@ -156,15 +173,35 @@ const FormationList = () => {
             return <Tag color="success">Aucune absence</Tag>;
         }
 
+        // Regrouper les absences par participant
+        const absencesByParticipant = {};
+        formationAbsences.forEach(absence => {
+            if (absence.participant) {
+                const key = `${absence.participant.id}`;
+                if (!absencesByParticipant[key]) {
+                    absencesByParticipant[key] = {
+                        participant: absence.participant,
+                        dates: []
+                    };
+                }
+                absencesByParticipant[key].dates.push(absence.date);
+            }
+        });
+
         return (
             <Popover
                 content={
                     <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                        {formationAbsences.map((absence) => (
-                            <div key={absence.id}>
-                                {absence.participant ? 
-                                    `${absence.participant.nom} ${absence.participant.prenom}` : 
-                                    'Participant supprimé'} - {new Date(absence.date).toLocaleDateString()}
+                        {Object.values(absencesByParticipant).map((item) => (
+                            <div key={item.participant.id} style={{ marginBottom: '10px' }}>
+                                <strong>{item.participant.nom} {item.participant.prenom}</strong>
+                                <div style={{ marginLeft: '15px' }}>
+                                    {item.dates.map(date => (
+                                        <div key={date}>
+                                            {new Date(date).toLocaleDateString()}
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -172,7 +209,7 @@ const FormationList = () => {
                 title="Liste des absences"
                 trigger="hover"
             >
-                <Badge count={formationAbsences.length} style={{ backgroundColor: '#52c41a' }}>
+                <Badge count={Object.keys(absencesByParticipant).length} style={{ backgroundColor: '#52c41a' }}>
                     <Button type="link" icon={<ClockCircleOutlined />}>
                         Absences
                     </Button>

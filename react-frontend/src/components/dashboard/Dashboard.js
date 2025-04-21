@@ -8,15 +8,13 @@ import {
     DashboardOutlined,
     BarChartOutlined,
     CalendarOutlined,
-    LineChartOutlined,
-    ClockCircleOutlined
+    LineChartOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import FormationList from './FormationList';
 import FormateurList from './FormateurList';
 import ParticipantList from './ParticipantList';
 import ProfileList from './ProfileList';
-import AbsenceList from './AbsenceList';
 import './Dashboard.css';
 
 const { Header, Sider, Content } = Layout;
@@ -60,12 +58,7 @@ const Dashboard = () => {
             key: 'trainers',
             icon: <LineChartOutlined />,
             label: 'Track Trainers',
-        },
-        {
-            key: 'absences',
-            icon: <ClockCircleOutlined />,
-            label: 'Absences',
-        },
+        }
     ];
 
     const handleMenuClick = ({ key }) => {
@@ -89,8 +82,6 @@ const Dashboard = () => {
                 return <ParticipantList />;
             case 'profiles':
                 return <ProfileList />;
-            case 'absences':
-                return <AbsenceList />;
             default:
                 return (
                     <div className="dashboard-overview">
