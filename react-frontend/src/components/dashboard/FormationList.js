@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Space, Modal, message, Tag, Popover, Badge } from 'antd';
+import { Button, Space, Modal, message, Tag, Popover, Badge, Checkbox, List } from 'antd';
 import { EditOutlined, DeleteOutlined, PlusOutlined, UserOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import FormationForm from './forms/FormationForm';
@@ -12,6 +12,9 @@ const FormationList = () => {
     const [modalVisible, setModalVisible] = useState(false);
     const [editingFormation, setEditingFormation] = useState(null);
     const [absences, setAbsences] = useState({});
+    const [absenceModalVisible, setAbsenceModalVisible] = useState(false);
+    const [selectedFormation, setSelectedFormation] = useState(null);
+    const [selectedParticipants, setSelectedParticipants] = useState([]);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -71,68 +74,53 @@ const FormationList = () => {
             const { participants, ...formationData } = values;
             
             if (editingFormation) {
-                // Mise à jour de la formation
                 await api.put(`/formations/${editingFormation.id}`, formationData);
-                
-                // Mise à jour des participants
-                if (participants && participants.length > 0) {
-                    // Récupérer les participants actuels
-                    const currentParticipants = editingFormation.participants || [];
-                    const currentParticipantIds = currentParticipants.map(p => p.id);
-                    
-                    // Ajouter les nouveaux participants
-                    for (const participantId of participants) {
-                        if (!currentParticipantIds.includes(participantId)) {
-                            try {
-                                await api.post(`/formations/${editingFormation.id}/participants/${participantId}`);
-                            } catch (error) {
-                                console.error(`Erreur lors de l'ajout du participant ${participantId}:`, error);
-                            }
-                        }
-                    }
-                    
-                    // Supprimer les participants qui ne sont plus dans la liste
-                    for (const participantId of currentParticipantIds) {
-                        if (!participants.includes(participantId)) {
-                            try {
-                                await api.delete(`/participants/${participantId}/formations/${editingFormation.id}`);
-                            } catch (error) {
-                                console.error(`Erreur lors de la suppression du participant ${participantId}:`, error);
-                            }
-                        }
-                    }
-                }
-                
                 message.success('Formation mise à jour avec succès');
             } else {
-                // Création de la formation
                 const response = await api.post('/formations', formationData);
-                const newFormationId = response.data.id;
-                
-                // Ajouter les participants
                 if (participants && participants.length > 0) {
-                    for (const participantId of participants) {
-                        try {
-                            await api.post(`/formations/${newFormationId}/participants/${participantId}`);
-                        } catch (error) {
-                            console.error(`Erreur lors de l'ajout du participant ${participantId}:`, error);
-                        }
-                    }
+                    await Promise.all(
+                        participants.map(participantId =>
+                            api.post(`/formations/${response.data.id}/participants/${participantId}`)
+                        )
+                    );
                 }
-                
                 message.success('Formation créée avec succès');
             }
             
             setModalVisible(false);
             fetchFormations();
         } catch (error) {
-            console.error('Erreur lors de la sauvegarde:', error);
             message.error('Erreur lors de la sauvegarde de la formation');
         }
     };
 
-    const handleManageAbsences = (formationId) => {
-        navigate(`/absences?formation_id=${formationId}`);
+    const handleManageAbsences = (formation) => {
+        setSelectedFormation(formation);
+        setSelectedParticipants([]);
+        setAbsenceModalVisible(true);
+    };
+
+    const handleAbsenceSubmit = async () => {
+        try {
+            const today = new Date().toISOString().split('T')[0];
+            await Promise.all(
+                selectedParticipants.map(participantId =>
+                    api.post('/absences', {
+                        participant_id: participantId,
+                        formation_id: selectedFormation.id,
+                        date: today,
+                        reason: 'Absence enregistrée',
+                        status: 'unjustified'
+                    })
+                )
+            );
+            message.success('Absences enregistrées avec succès');
+            setAbsenceModalVisible(false);
+            fetchAbsences();
+        } catch (error) {
+            message.error('Erreur lors de l\'enregistrement des absences');
+        }
     };
 
     const renderParticipants = (record) => {
@@ -163,8 +151,8 @@ const FormationList = () => {
     };
 
     const renderAbsences = (record) => {
-        const absences = record.absences || [];
-        if (absences.length === 0) {
+        const formationAbsences = absences[record.id] || [];
+        if (formationAbsences.length === 0) {
             return <Tag color="success">Aucune absence</Tag>;
         }
 
@@ -172,11 +160,11 @@ const FormationList = () => {
             <Popover
                 content={
                     <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                        {absences.map((absence) => (
+                        {formationAbsences.map((absence) => (
                             <div key={absence.id}>
                                 {absence.participant ? 
                                     `${absence.participant.nom} ${absence.participant.prenom}` : 
-                                    'Participant supprimé'} - {absence.date}
+                                    'Participant supprimé'} - {new Date(absence.date).toLocaleDateString()}
                             </div>
                         ))}
                     </div>
@@ -184,7 +172,7 @@ const FormationList = () => {
                 title="Liste des absences"
                 trigger="hover"
             >
-                <Badge count={absences.length} style={{ backgroundColor: '#52c41a' }}>
+                <Badge count={formationAbsences.length} style={{ backgroundColor: '#52c41a' }}>
                     <Button type="link" icon={<ClockCircleOutlined />}>
                         Absences
                     </Button>
@@ -214,11 +202,6 @@ const FormationList = () => {
             title: 'Formateur',
             dataIndex: ['formateur', 'nom'],
             key: 'formateur',
-            render: (_, record) => (
-                <span>
-                    {record.formateur?.nom} {record.formateur?.prenom}
-                </span>
-            ),
         },
         {
             title: 'Places',
@@ -283,7 +266,7 @@ const FormationList = () => {
                         Supprimer
                     </Button>
                     <Button
-                        onClick={() => handleManageAbsences(record.id)}
+                        onClick={() => handleManageAbsences(record)}
                     >
                         Gérer les absences
                     </Button>
@@ -324,6 +307,36 @@ const FormationList = () => {
                     onFinish={handleSave}
                     onCancel={() => setModalVisible(false)}
                 />
+            </Modal>
+
+            <Modal
+                title={`Gérer les absences - ${selectedFormation?.titre}`}
+                open={absenceModalVisible}
+                onCancel={() => setAbsenceModalVisible(false)}
+                onOk={handleAbsenceSubmit}
+                width={600}
+            >
+                {selectedFormation && (
+                    <List
+                        dataSource={selectedFormation.participants || []}
+                        renderItem={participant => (
+                            <List.Item>
+                                <Checkbox
+                                    checked={selectedParticipants.includes(participant.id)}
+                                    onChange={e => {
+                                        if (e.target.checked) {
+                                            setSelectedParticipants([...selectedParticipants, participant.id]);
+                                        } else {
+                                            setSelectedParticipants(selectedParticipants.filter(id => id !== participant.id));
+                                        }
+                                    }}
+                                >
+                                    {participant.nom} {participant.prenom}
+                                </Checkbox>
+                            </List.Item>
+                        )}
+                    />
+                )}
             </Modal>
         </>
     );

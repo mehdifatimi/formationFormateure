@@ -33,14 +33,14 @@ const AbsenceForm = ({ visible, onCancel, onSuccess, initialValues, participants
 
             if (initialValues) {
                 await updateAbsence(initialValues.id, formattedValues);
-                message.success('Absence updated successfully');
+                message.success('Absence mise à jour avec succès');
             } else {
                 await createAbsence(formattedValues);
-                message.success('Absence created successfully');
+                message.success('Absence créée avec succès');
             }
             onSuccess();
         } catch (error) {
-            message.error('Failed to save absence');
+            message.error('Erreur lors de la sauvegarde de l\'absence');
         } finally {
             setLoading(false);
         }
@@ -48,7 +48,7 @@ const AbsenceForm = ({ visible, onCancel, onSuccess, initialValues, participants
 
     return (
         <Modal
-            title={initialValues ? 'Edit Absence' : 'Add Absence'}
+            title={initialValues ? 'Modifier l\'absence' : 'Ajouter une absence'}
             open={visible}
             onCancel={onCancel}
             onOk={handleSubmit}
@@ -61,12 +61,12 @@ const AbsenceForm = ({ visible, onCancel, onSuccess, initialValues, participants
                 <Form.Item
                     name="participant_id"
                     label="Participant"
-                    rules={[{ required: true, message: 'Please select a participant' }]}
+                    rules={[{ required: true, message: 'Veuillez sélectionner un participant' }]}
                 >
                     <Select
-                        placeholder="Select a participant"
+                        placeholder="Sélectionner un participant"
                         options={participants.map(p => ({
-                            label: `${p.first_name} ${p.last_name}`,
+                            label: `${p.nom} ${p.prenom}`,
                             value: p.id,
                         }))}
                     />
@@ -75,12 +75,12 @@ const AbsenceForm = ({ visible, onCancel, onSuccess, initialValues, participants
                 <Form.Item
                     name="formation_id"
                     label="Formation"
-                    rules={[{ required: true, message: 'Please select a formation' }]}
+                    rules={[{ required: true, message: 'Veuillez sélectionner une formation' }]}
                 >
                     <Select
-                        placeholder="Select a formation"
+                        placeholder="Sélectionner une formation"
                         options={formations.map(f => ({
-                            label: f.title,
+                            label: f.titre,
                             value: f.id,
                         }))}
                     />
@@ -89,30 +89,29 @@ const AbsenceForm = ({ visible, onCancel, onSuccess, initialValues, participants
                 <Form.Item
                     name="date"
                     label="Date"
-                    rules={[{ required: true, message: 'Please select a date' }]}
+                    rules={[{ required: true, message: 'Veuillez sélectionner une date' }]}
                 >
                     <DatePicker style={{ width: '100%' }} />
                 </Form.Item>
 
                 <Form.Item
                     name="reason"
-                    label="Reason"
-                    rules={[{ required: true, message: 'Please enter a reason' }]}
+                    label="Motif"
+                    rules={[{ required: true, message: 'Veuillez entrer un motif' }]}
                 >
                     <Input.TextArea rows={4} />
                 </Form.Item>
 
                 <Form.Item
                     name="status"
-                    label="Status"
-                    rules={[{ required: true, message: 'Please select a status' }]}
+                    label="Statut"
+                    rules={[{ required: true, message: 'Veuillez sélectionner un statut' }]}
                 >
                     <Select
-                        placeholder="Select a status"
+                        placeholder="Sélectionner un statut"
                         options={[
-                            { label: 'Pending', value: 'pending' },
-                            { label: 'Approved', value: 'approved' },
-                            { label: 'Rejected', value: 'rejected' },
+                            { label: 'Justifiée', value: 'justified' },
+                            { label: 'Non justifiée', value: 'unjustified' },
                         ]}
                     />
                 </Form.Item>

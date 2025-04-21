@@ -6,16 +6,28 @@ const api = axios.create({
     headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest'
+        'X-Requested-With': 'XMLHttpRequest',
+        'Access-Control-Allow-Origin': 'http://localhost:3000',
+        'Access-Control-Allow-Credentials': 'true'
     },
     withCredentials: true
 });
 
-export default api;
-
 // Intercepteur pour les requêtes
 api.interceptors.request.use(
     async (config) => {
+        // Si la requête n'est pas pour le cookie CSRF et n'est pas une requête GET
+        if (!config.url.includes('sanctum/csrf-cookie') && config.method !== 'get') {
+            try {
+                // Obtenir le cookie CSRF
+                await axios.get('http://127.0.0.1:8000/api/sanctum/csrf-cookie', {
+                    withCredentials: true
+                });
+            } catch (error) {
+                console.error('Erreur lors de la récupération du cookie CSRF:', error);
+            }
+        }
+
         // Log de la requête
         console.log(`Requête ${config.method.toUpperCase()} vers ${config.url}`, config.data);
         
@@ -24,6 +36,7 @@ api.interceptors.request.use(
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
+
         return config;
     },
     (error) => {
@@ -90,3 +103,5 @@ api.interceptors.response.use(
         return Promise.reject(error);
     }
 );
+
+export default api;

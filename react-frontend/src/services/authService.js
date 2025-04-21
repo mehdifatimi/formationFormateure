@@ -9,9 +9,6 @@ const authService = {
      */
     login: async (email, password) => {
         try {
-            // Get CSRF cookie first
-            await api.get('/sanctum/csrf-cookie');
-            
             console.log('Tentative de connexion avec:', { email });
             console.log('Configuration de l\'API:', {
                 baseURL: api.defaults.baseURL,
@@ -19,7 +16,7 @@ const authService = {
                 withCredentials: api.defaults.withCredentials
             });
 
-            const response = await api.post('/login', { email, password });
+            const response = await api.post('/api/login', { email, password });
             
             console.log('Réponse de connexion:', {
                 status: response.status,
@@ -58,7 +55,7 @@ const authService = {
      */
     register: async (userData) => {
         try {
-            const response = await api.post('/register', userData);
+            const response = await api.post('/api/register', userData);
             return response.data;
         } catch (error) {
             console.error('Registration error:', error);
@@ -72,7 +69,7 @@ const authService = {
      */
     logout: async () => {
         try {
-            await api.post('/logout');
+            await api.post('/api/logout');
             localStorage.removeItem('token');
             localStorage.removeItem('user');
         } catch (error) {
@@ -112,7 +109,7 @@ const authService = {
      */
     refreshToken: async () => {
         try {
-            const response = await api.post('/refresh');
+            const response = await api.post('/api/refresh-token');
             if (response.data.token) {
                 localStorage.setItem('token', response.data.token);
             }

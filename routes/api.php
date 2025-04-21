@@ -45,6 +45,7 @@ Route::get('/sanctum/csrf-cookie', [CsrfCookieController::class, 'show']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
 
+
 // Routes protégées
 Route::middleware('auth:sanctum')->group(function () {
     // API Resource Routes
@@ -64,6 +65,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Routes supplémentaires
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::post('/refresh-token', [AuthController::class, 'refreshToken']);
     Route::get('/user', function (Request $request) {
         return $request->user();
     });

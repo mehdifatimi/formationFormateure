@@ -10,11 +10,11 @@ return new class extends Migration
     {
         Schema::create('absences', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('participant_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('participant_id')->constrained('participants')->onDelete('cascade');
             $table->foreignId('formation_id')->constrained()->onDelete('cascade');
             $table->date('date');
-            $table->string('motif');
-            $table->string('statut')->default('en_attente');
+            $table->string('reason');
+            $table->string('status')->default('unjustified');
             $table->text('commentaire')->nullable();
             $table->timestamps();
         });

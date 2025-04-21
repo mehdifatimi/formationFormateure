@@ -9,9 +9,15 @@ use App\Models\User;
 use App\Models\Role;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Routing\Controller as BaseController;
 
-class AuthController extends Controller
+class AuthController extends BaseController
 {
+    public function __construct()
+    {
+        $this->middleware('auth:sanctum')->only(['logout', 'refreshToken']);
+    }
+
     public function login(Request $request)
     {
         try {
@@ -51,7 +57,17 @@ class AuthController extends Controller
 
             return response()->json([
                 'token' => $token,
-                'user' => $user
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $user->role
+                ]
+            ])->withHeaders([
+                'Access-Control-Allow-Origin' => 'http://localhost:3000',
+                'Access-Control-Allow-Credentials' => 'true',
+                'Access-Control-Allow-Methods' => 'POST, OPTIONS',
+                'Access-Control-Allow-Headers' => 'Content-Type, Authorization, X-Requested-With'
             ]);
         } catch (\Exception $e) {
             Log::error('Erreur de connexion', [

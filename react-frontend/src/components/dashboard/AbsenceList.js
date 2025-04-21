@@ -6,6 +6,7 @@ import { getAbsences, deleteAbsence } from '../../services/absenceService';
 import { getParticipants } from '../../services/participantService';
 import { getFormations } from '../../services/formationService';
 import AbsenceForm from './forms/AbsenceForm';
+import { useSearchParams } from 'react-router-dom';
 
 const AbsenceList = () => {
     const [absences, setAbsences] = useState([]);
@@ -15,6 +16,14 @@ const AbsenceList = () => {
     const [filters, setFilters] = useState({});
     const [participants, setParticipants] = useState([]);
     const [formations, setFormations] = useState([]);
+    const [searchParams] = useSearchParams();
+
+    useEffect(() => {
+        const formationId = searchParams.get('formation_id');
+        if (formationId) {
+            setFilters(prev => ({ ...prev, formation_id: formationId }));
+        }
+    }, [searchParams]);
 
     const fetchData = async () => {
         try {
@@ -28,7 +37,7 @@ const AbsenceList = () => {
             setParticipants(participantsData);
             setFormations(formationsData);
         } catch (error) {
-            message.error('Failed to fetch data');
+            message.error('Erreur lors du chargement des données');
         } finally {
             setLoading(false);
         }
@@ -46,10 +55,10 @@ const AbsenceList = () => {
     const handleDelete = async (record) => {
         try {
             await deleteAbsence(record.id);
-            message.success('Absence deleted successfully');
+            message.success('Absence supprimée avec succès');
             fetchData();
         } catch (error) {
-            message.error('Failed to delete absence');
+            message.error('Erreur lors de la suppression de l\'absence');
         }
     };
 
@@ -65,28 +74,38 @@ const AbsenceList = () => {
     const columns = [
         {
             title: 'Participant',
-            dataIndex: ['participant', 'name'],
+            dataIndex: ['participant', 'nom'],
             key: 'participant',
+            render: (_, record) => `${record.participant?.nom} ${record.participant?.prenom}`
         },
         {
             title: 'Formation',
-            dataIndex: ['formation', 'title'],
+            dataIndex: ['formation', 'titre'],
             key: 'formation',
         },
         {
             title: 'Date',
             dataIndex: 'date',
             key: 'date',
+            render: (date) => new Date(date).toLocaleDateString()
         },
         {
-            title: 'Reason',
+            title: 'Motif',
             dataIndex: 'reason',
             key: 'reason',
         },
         {
-            title: 'Status',
+            title: 'Statut',
             dataIndex: 'status',
             key: 'status',
+            render: (status) => {
+                const statusMap = {
+                    'justified': { text: 'Justifiée', color: 'green' },
+                    'unjustified': { text: 'Non justifiée', color: 'red' }
+                };
+                const statusInfo = statusMap[status] || { text: status, color: 'default' };
+                return <span style={{ color: statusInfo.color }}>{statusInfo.text}</span>;
+            }
         },
         {
             title: 'Actions',
@@ -99,10 +118,10 @@ const AbsenceList = () => {
                         onClick={() => handleEdit(record)}
                     />
                     <Popconfirm
-                        title="Are you sure you want to delete this absence?"
+                        title="Êtes-vous sûr de vouloir supprimer cette absence ?"
                         onConfirm={() => handleDelete(record)}
-                        okText="Yes"
-                        cancelText="No"
+                        okText="Oui"
+                        cancelText="Non"
                     >
                         <Button
                             type="primary"
@@ -121,7 +140,7 @@ const AbsenceList = () => {
             label: 'Participant',
             type: 'select',
             options: participants.map(p => ({
-                label: `${p.first_name} ${p.last_name}`,
+                label: `${p.nom} ${p.prenom}`,
                 value: p.id
             })),
         },
@@ -130,18 +149,17 @@ const AbsenceList = () => {
             label: 'Formation',
             type: 'select',
             options: formations.map(f => ({
-                label: f.title,
+                label: f.titre,
                 value: f.id
             })),
         },
         {
             name: 'status',
-            label: 'Status',
+            label: 'Statut',
             type: 'select',
             options: [
-                { label: 'Pending', value: 'pending' },
-                { label: 'Approved', value: 'approved' },
-                { label: 'Rejected', value: 'rejected' },
+                { label: 'Justifiée', value: 'justified' },
+                { label: 'Non justifiée', value: 'unjustified' },
             ],
         },
     ];
@@ -155,7 +173,7 @@ const AbsenceList = () => {
                 loading={loading}
                 filters={filterConfig}
                 onFilter={handleFilter}
-                searchPlaceholder="Search absences..."
+                searchPlaceholder="Rechercher une absence..."
                 showDateRange
                 dateRangeField="date"
                 extra={
@@ -164,7 +182,7 @@ const AbsenceList = () => {
                         icon={<PlusOutlined />}
                         onClick={handleAdd}
                     >
-                        Add Absence
+                        Ajouter une absence
                     </Button>
                 }
             />

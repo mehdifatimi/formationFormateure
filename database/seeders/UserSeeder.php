@@ -24,27 +24,47 @@ class UserSeeder extends Seeder
             if (User::count() === 0) {
                 // Create admin user
                 $admin = User::create([
-                    'name' => 'Admin User',
-                    'email' => 'admin@example.com',
+                    'name' => 'Admin',
+                    'email' => 'admin@test.com',
                     'password' => Hash::make('admin123'),
                     'role' => 'admin'
                 ]);
                 $admin->syncRoles([$adminRole]);
                 Log::info('Admin user created', ['email' => $admin->email]);
 
+                // Create additional admin user
+                $admin2 = User::create([
+                    'name' => 'Admin Exemple',
+                    'email' => 'admin@exemple.com',
+                    'password' => Hash::make('admin123'),
+                    'role' => 'admin'
+                ]);
+                $admin2->syncRoles([$adminRole]);
+                Log::info('Additional admin user created', ['email' => $admin2->email]);
+
+                // Create Mehdi's admin account
+                $mehdi = User::create([
+                    'name' => 'Mehdi Fatimi',
+                    'email' => 'mehdifatimi84@gmail.com',
+                    'password' => Hash::make('mehdi123'),
+                    'role' => 'admin'
+                ]);
+                $mehdi->syncRoles([$adminRole]);
+                Log::info('Mehdi admin user created', ['email' => $mehdi->email]);
+
                 // Create formateurs
                 $formateurs = [
                     [
-                        'name' => 'Jean Dupont',
-                        'email' => 'jean.dupont@example.com',
-                        'password' => Hash::make('password123'),
+                        'name' => 'Formateur Test',
+                        'email' => 'formateur@test.com',
+                        'password' => Hash::make('formateur123'),
                         'role' => 'formateur',
                         'specialite' => 'Développement Web',
                     ],
                     [
-                        'name' => 'Marie Martin',
-                        'email' => 'marie.martin@example.com',
-                        'password' => Hash::make('password123'),
+                        'name' => 'Formateur Test 2',
+                        'email' => 'formateur2@test.com',
+                        'password' => Hash::make('formateur123'),
                         'role' => 'formateur',
                         'specialite' => 'Design UI/UX',
                     ],
@@ -58,15 +78,15 @@ class UserSeeder extends Seeder
                 // Create participants
                 $participants = [
                     [
-                        'name' => 'Lucas Petit',
-                        'email' => 'lucas.petit@example.com',
-                        'password' => Hash::make('password123'),
+                        'name' => 'Participant Test',
+                        'email' => 'participant@test.com',
+                        'password' => Hash::make('participant123'),
                         'role' => 'participant',
                     ],
                     [
-                        'name' => 'Emma Robert',
-                        'email' => 'emma.robert@example.com',
-                        'password' => Hash::make('password123'),
+                        'name' => 'Participant Test 2',
+                        'email' => 'participant2@test.com',
+                        'password' => Hash::make('participant123'),
                         'role' => 'participant',
                     ],
                 ];
