@@ -9,21 +9,11 @@ const authService = {
      */
     login: async (email, password) => {
         try {
-            console.log('Tentative de connexion avec:', { email });
-            console.log('Configuration de l\'API:', {
-                baseURL: api.defaults.baseURL,
-                headers: api.defaults.headers,
-                withCredentials: api.defaults.withCredentials
-            });
-
-            const response = await api.post('/api/login', { email, password });
+            // Obtenir le CSRF cookie d'abord
+            await api.get('http://127.0.0.1:8000/sanctum/csrf-cookie');
             
-            console.log('Réponse de connexion:', {
-                status: response.status,
-                headers: response.headers,
-                data: response.data
-            });
-
+            const response = await api.post('/login', { email, password });
+            
             if (response.data.token) {
                 localStorage.setItem('token', response.data.token);
                 localStorage.setItem('user', JSON.stringify(response.data.user));
@@ -31,19 +21,7 @@ const authService = {
             }
             return response.data;
         } catch (error) {
-            console.error('Erreur de connexion détaillée:', {
-                message: error.message,
-                response: error.response ? {
-                    status: error.response.status,
-                    data: error.response.data,
-                    headers: error.response.headers
-                } : null,
-                request: error.request ? {
-                    method: error.request.method,
-                    url: error.request.url,
-                    headers: error.request.headers
-                } : null
-            });
+            console.error('Login error:', error);
             throw error;
         }
     },
@@ -69,7 +47,7 @@ const authService = {
      */
     logout: async () => {
         try {
-            await api.post('/api/logout');
+            await api.post('/logout');
             localStorage.removeItem('token');
             localStorage.removeItem('user');
         } catch (error) {

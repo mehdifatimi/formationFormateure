@@ -24,6 +24,8 @@ class Formation extends Model
         'date_fin',
         'formateur_id',
         'places_disponibles',
+        'hotel_id',
+        'lieu_id',
         'statut',
         'created_by'
     ];
@@ -134,5 +136,15 @@ class Formation extends Model
             'validated_at' => now(),
             'rejection_reason' => $reason
         ]);
+    }
+
+    public function hotel()
+    {
+        return $this->belongsTo(Hotel::class);
+    }
+
+    public function lieu()
+    {
+        return $this->belongsTo(Lieu::class);
     }
 }

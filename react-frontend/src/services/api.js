@@ -6,100 +6,34 @@ const api = axios.create({
     headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
-        'Access-Control-Allow-Origin': 'http://localhost:3000',
-        'Access-Control-Allow-Credentials': 'true'
+        'X-Requested-With': 'XMLHttpRequest'
     },
     withCredentials: true
 });
 
-// Intercepteur pour les requêtes
+// Intercepteur pour ajouter le token
 api.interceptors.request.use(
-    async (config) => {
-        // Si la requête n'est pas pour le cookie CSRF et n'est pas une requête GET
-        if (!config.url.includes('sanctum/csrf-cookie') && config.method !== 'get') {
-            try {
-                // Obtenir le cookie CSRF
-                await axios.get('http://127.0.0.1:8000/api/sanctum/csrf-cookie', {
-                    withCredentials: true
-                });
-            } catch (error) {
-                console.error('Erreur lors de la récupération du cookie CSRF:', error);
-            }
-        }
-
-        // Log de la requête
-        console.log(`Requête ${config.method.toUpperCase()} vers ${config.url}`, config.data);
-        
-        // Ajout du token d'authentification si disponible
+    config => {
         const token = localStorage.getItem('token');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
-
         return config;
     },
-    (error) => {
-        console.error('Erreur lors de la préparation de la requête:', error);
+    error => {
         return Promise.reject(error);
     }
 );
 
-// Intercepteur pour les réponses
+// Intercepteur pour gérer les erreurs
 api.interceptors.response.use(
-    (response) => {
-        // Log de la réponse
-        console.log(`Réponse de ${response.config.url}:`, response.status, response.data);
-        return response;
-    },
-    async (error) => {
-        // Log détaillé de l'erreur
-        if (error.response) {
-            console.error('Erreur de réponse:', {
-                status: error.response.status,
-                data: error.response.data,
-                headers: error.response.headers,
-                url: error.config.url
-            });
-
-            // Si l'erreur est 401, essayer de rafraîchir le token
-            if (error.response.status === 401) {
-                try {
-                    const token = localStorage.getItem('token');
-                    if (token) {
-                        // Essayer de rafraîchir le token
-                        const response = await axios.post('http://127.0.0.1:8000/api/refresh-token', {}, {
-                            headers: {
-                                'Authorization': `Bearer ${token}`,
-                                'Content-Type': 'application/json',
-                                'Accept': 'application/json',
-                                'X-Requested-With': 'XMLHttpRequest'
-                            },
-                            withCredentials: true
-                        });
-                        
-                        if (response.data.token) {
-                            localStorage.setItem('token', response.data.token);
-                            // Réessayer la requête originale
-                            error.config.headers.Authorization = `Bearer ${response.data.token}`;
-                            return axios(error.config);
-                        }
-                    }
-                } catch (refreshError) {
-                    console.error('Erreur lors du rafraîchissement du token:', refreshError);
-                }
-                
-                // Si le rafraîchissement échoue, déconnecter l'utilisateur
-                localStorage.removeItem('token');
-                localStorage.removeItem('user');
-                window.location.href = '/login';
-            }
-        } else if (error.request) {
-            console.error('Erreur de requête:', error.request);
-        } else {
-            console.error('Erreur:', error.message);
+    response => response,
+    error => {
+        if (error.response?.status === 401) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/login';
         }
-        
         return Promise.reject(error);
     }
 );

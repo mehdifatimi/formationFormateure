@@ -14,10 +14,12 @@ return new class extends Migration
             $table->text('description');
             $table->dateTime('date_debut');
             $table->dateTime('date_fin');
-            $table->foreignId('formateur_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('formateur_id')->constrained('users');
             $table->integer('places_disponibles');
+            $table->string('hotel')->nullable();
+            $table->string('lieu')->nullable();
             $table->string('statut')->default('en_attente');
-            $table->foreignId('created_by')->constrained('users')->onDelete('cascade');
+            $table->foreignId('created_by')->constrained('users');
             $table->timestamps();
         });
     }

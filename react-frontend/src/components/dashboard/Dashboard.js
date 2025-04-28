@@ -1,43 +1,44 @@
 import React, { useState } from 'react';
-import { Layout, Menu, Card, Row, Col, Statistic } from 'antd';
+import { Layout, Menu, theme } from 'antd';
 import {
+    HomeOutlined,
     UserOutlined,
     TeamOutlined,
-    BookOutlined,
-    ProfileOutlined,
-    DashboardOutlined,
-    BarChartOutlined,
     CalendarOutlined,
-    LineChartOutlined
+    FileTextOutlined,
+    FileDoneOutlined,
+    UserSwitchOutlined
 } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
 import FormationList from './FormationList';
-import FormateurList from './FormateurList';
 import ParticipantList from './ParticipantList';
-import ProfileList from './ProfileList';
+import FormateurList from './FormateurList';
+import PlanTraining from './PlanTraining';
+import FormationAnimateur from './animateure/FormationAnimateur';
+import FormationDRF from './drf/FormationDRF';
+import FormationPartisipant from './partisipant/FormationPartisipant';
+import CDCManager from './cdc/CDCManager';
 import './Dashboard.css';
 
 const { Header, Sider, Content } = Layout;
 
 const Dashboard = () => {
-    const [selectedMenu, setSelectedMenu] = useState('dashboard');
-    const navigate = useNavigate();
+    const [collapsed, setCollapsed] = useState(false);
+    const [selectedKey, setSelectedKey] = useState('home');
+
+    const {
+        token: { colorBgContainer },
+    } = theme.useToken();
 
     const menuItems = [
         {
-            key: 'dashboard',
-            icon: <DashboardOutlined />,
-            label: 'Tableau de bord',
+            key: 'home',
+            icon: <HomeOutlined />,
+            label: 'Accueil',
         },
         {
             key: 'formations',
-            icon: <BookOutlined />,
+            icon: <CalendarOutlined />,
             label: 'Formations',
-        },
-        {
-            key: 'formateurs',
-            icon: <UserOutlined />,
-            label: 'Formateurs',
         },
         {
             key: 'participants',
@@ -45,123 +46,112 @@ const Dashboard = () => {
             label: 'Participants',
         },
         {
-            key: 'profiles',
-            icon: <ProfileOutlined />,
-            label: 'Profils',
+            key: 'formateurs',
+            icon: <UserOutlined />,
+            label: 'Formateurs',
         },
         {
-            key: 'plan',
+            key: 'plan-training',
             icon: <CalendarOutlined />,
-            label: 'Plan Training',
+            label: 'Plan de formation',
         },
         {
-            key: 'trainers',
-            icon: <LineChartOutlined />,
-            label: 'Track Trainers',
-        }
+            key: 'cdc',
+            icon: <FileTextOutlined />,
+            label: 'CDC',
+            children: [
+                {
+                    key: 'cdc-formations',
+                    label: 'Formations',
+                },
+                {
+                    key: 'cdc-formateurs',
+                    label: 'Formateurs',
+                },
+                {
+                    key: 'cdc-participants',
+                    label: 'Participants',
+                },
+            ],
+        },
+        {
+            key: 'drf',
+            icon: <FileDoneOutlined />,
+            label: 'DRF',
+            children: [
+                {
+                    key: 'drf-formations',
+                    label: 'Formations',
+                },
+            ],
+        },
+        {
+            key: 'animateur',
+            icon: <UserSwitchOutlined />,
+            label: 'Animateur',
+            children: [
+                {
+                    key: 'animateur-formations',
+                    label: 'Formations',
+                },
+            ],
+        },
+        {
+            key: 'partisipant',
+            icon: <TeamOutlined />,
+            label: 'Participant',
+            children: [
+                {
+                    key: 'partisipant-formations',
+                    label: 'Formations',
+                },
+            ],
+        },
     ];
 
-    const handleMenuClick = ({ key }) => {
-        setSelectedMenu(key);
-        
-        // Navigate to the appropriate route for special menu items
-        if (key === 'plan') {
-            navigate('/dashboard/plan');
-        } else if (key === 'trainers') {
-            navigate('/dashboard/trainers');
-        }
-    };
-
     const renderContent = () => {
-        switch (selectedMenu) {
+        switch (selectedKey) {
+            case 'home':
+                return <div>Bienvenue sur le tableau de bord</div>;
             case 'formations':
                 return <FormationList />;
-            case 'formateurs':
-                return <FormateurList />;
             case 'participants':
                 return <ParticipantList />;
-            case 'profiles':
-                return <ProfileList />;
+            case 'formateurs':
+                return <FormateurList />;
+            case 'plan-training':
+                return <PlanTraining />;
+            case 'cdc-formations':
+            case 'cdc-formateurs':
+            case 'cdc-participants':
+                return <CDCManager activeTab={selectedKey.split('-')[1]} />;
+            case 'drf-formations':
+                return <FormationDRF />;
+            case 'animateur-formations':
+                return <FormationAnimateur />;
+            case 'partisipant-formations':
+                return <FormationPartisipant />;
             default:
-                return (
-                    <div className="dashboard-overview">
-                        <h2>Bienvenue sur votre tableau de bord !</h2>
-                        <Row gutter={[16, 16]}>
-                            <Col xs={24} sm={12} md={6}>
-                                <Card>
-                                    <Statistic
-                                        title="Formations actives"
-                                        value={12}
-                                        prefix={<BookOutlined />}
-                                    />
-                                </Card>
-                            </Col>
-                            <Col xs={24} sm={12} md={6}>
-                                <Card>
-                                    <Statistic
-                                        title="Formateurs"
-                                        value={8}
-                                        prefix={<UserOutlined />}
-                                    />
-                                </Card>
-                            </Col>
-                            <Col xs={24} sm={12} md={6}>
-                                <Card>
-                                    <Statistic
-                                        title="Participants"
-                                        value={45}
-                                        prefix={<TeamOutlined />}
-                                    />
-                                </Card>
-                            </Col>
-                            <Col xs={24} sm={12} md={6}>
-                                <Card>
-                                    <Statistic
-                                        title="Utilisateurs"
-                                        value={15}
-                                        prefix={<ProfileOutlined />}
-                                    />
-                                </Card>
-                            </Col>
-                        </Row>
-                        <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-                            <Col xs={24} md={12}>
-                                <Card title="Dernières formations">
-                                    {/* Ajouter un composant pour afficher les dernières formations */}
-                                </Card>
-                            </Col>
-                            <Col xs={24} md={12}>
-                                <Card title="Derniers participants">
-                                    {/* Ajouter un composant pour afficher les derniers participants */}
-                                </Card>
-                            </Col>
-                        </Row>
-                    </div>
-                );
+                return null;
         }
     };
 
     return (
-        <Layout className="dashboard-layout">
-            <Sider width={250} className="dashboard-sider">
-                <div className="logo">
-                    <h2>Formation Formateur</h2>
-                </div>
+        <Layout style={{ minHeight: '100vh' }}>
+            <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed}>
+                <div style={{ height: 32, margin: 16, background: 'rgba(255, 255, 255, 0.2)' }} />
                 <Menu
                     theme="dark"
+                    defaultSelectedKeys={['home']}
                     mode="inline"
-                    selectedKeys={[selectedMenu]}
                     items={menuItems}
-                    onClick={handleMenuClick}
+                    selectedKeys={[selectedKey]}
+                    onClick={({ key }) => setSelectedKey(key)}
                 />
             </Sider>
             <Layout>
-                <Header className="dashboard-header">
-                    <div className="header-content">
-                        <h1>Tableau de bord</h1>
-                    </div>
-                </Header>
-                <Content className="dashboard-content">
+                <Header style={{ padding: 0, background: colorBgContainer }} />
+                <Content style={{ margin: '24px 16px', padding: 24, background: colorBgContainer }}>
                     {renderContent()}
                 </Content>
             </Layout>

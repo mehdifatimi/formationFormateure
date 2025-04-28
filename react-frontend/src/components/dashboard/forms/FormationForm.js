@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Form, Input, DatePicker, InputNumber, Select, Button, Space, message } from 'antd';
-import api from '../../../services/api';
+import api from '../../services/api';
 import moment from 'moment';
 
 const { TextArea } = Input;
@@ -11,6 +11,8 @@ const FormationForm = ({ initialValues, onFinish, onCancel }) => {
     const [formateurs, setFormateurs] = useState([]);
     const [participants, setParticipants] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [hotels, setHotels] = useState([]);
+    const [lieux, setLieux] = useState([]);
 
     useEffect(() => {
         fetchFormateurs();
@@ -20,9 +22,12 @@ const FormationForm = ({ initialValues, onFinish, onCancel }) => {
                 ...initialValues,
                 dates: [moment(initialValues.date_debut), moment(initialValues.date_fin)],
                 formateur_id: initialValues.formateur?.id,
-                participants: initialValues.participants?.map(p => p.id) || []
+                participants: initialValues.participants?.map(p => p.id) || [],
+                hotel_id: initialValues.hotel?.id,
+                lieu_id: initialValues.lieu?.id
             });
         }
+        loadOptions();
     }, [initialValues, form]);
 
     const fetchFormateurs = async () => {
@@ -42,6 +47,16 @@ const FormationForm = ({ initialValues, onFinish, onCancel }) => {
         } catch (error) {
             console.error('Erreur lors du chargement des participants:', error);
             message.error('Erreur lors du chargement des participants');
+        }
+    };
+
+    const loadOptions = async () => {
+        try {
+            const response = await api.get('/formations/options');
+            setHotels(response.data.hotels);
+            setLieux(response.data.lieux);
+        } catch (error) {
+            console.error('Erreur lors du chargement des options:', error);
         }
     };
 
@@ -138,6 +153,40 @@ const FormationForm = ({ initialValues, onFinish, onCancel }) => {
                     {participants.map(participant => (
                         <Select.Option key={participant.id} value={participant.id}>
                             {participant.nom} {participant.prenom}
+                        </Select.Option>
+                    ))}
+                </Select>
+            </Form.Item>
+
+            <Form.Item
+                name="hotel_id"
+                label="Hôtel"
+                rules={[{ required: false, message: 'Veuillez sélectionner un hôtel' }]}
+            >
+                <Select
+                    placeholder="Sélectionnez un hôtel"
+                    allowClear
+                >
+                    {hotels.map(hotel => (
+                        <Select.Option key={hotel.id} value={hotel.id}>
+                            {hotel.nom}
+                        </Select.Option>
+                    ))}
+                </Select>
+            </Form.Item>
+
+            <Form.Item
+                name="lieu_id"
+                label="Lieu"
+                rules={[{ required: false, message: 'Veuillez sélectionner un lieu' }]}
+            >
+                <Select
+                    placeholder="Sélectionnez un lieu"
+                    allowClear
+                >
+                    {lieux.map(lieu => (
+                        <Select.Option key={lieu.id} value={lieu.id}>
+                            {lieu.nom} ({lieu.type} - {lieu.capacite} places)
                         </Select.Option>
                     ))}
                 </Select>

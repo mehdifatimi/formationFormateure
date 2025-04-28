@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use App\Models\Formation;
+use App\Models\User;
 
 class ParticipantController extends Controller
 {
@@ -272,25 +273,66 @@ class ParticipantController extends Controller
     public function getProgress()
     {
         try {
-            $total = Participant::count();
-            $inscrits = DB::table('formation_participant')
-                ->where('statut', 'inscrit')
-                ->distinct('participant_id')
-                ->count();
-            $termines = DB::table('formation_participant')
-                ->where('statut', 'termine')
-                ->distinct('participant_id')
-                ->count();
+            $participants = Participant::with(['formations' => function($query) {
+                $query->select('formations.id', 'titre', 'date_debut', 'date_fin', 'statut')
+                    ->orderBy('date_debut', 'desc');
+            }])->get();
 
-            return response()->json([
-                'total' => $total,
-                'inscrits' => $inscrits,
-                'termines' => $termines,
-                'taux_reussite' => $total > 0 ? round(($termines / $total) * 100, 2) : 0
-            ]);
+            $data = $participants->map(function($participant) {
+                $totalFormations = $participant->formations->count();
+                $completedFormations = $participant->formations->where('statut', 'termine')->count();
+                $absences = $participant->formations->where('statut', 'absent')->count();
+                
+                return [
+                    'id' => $participant->id,
+                    'nom' => $participant->nom,
+                    'prenom' => $participant->prenom,
+                    'email' => $participant->email,
+                    'total_formations' => $totalFormations,
+                    'completed_formations' => $completedFormations,
+                    'absences' => $absences,
+                    'absence_rate' => $totalFormations > 0 ? round(($absences / $totalFormations) * 100, 2) : 0,
+                    'evaluation_score' => $participant->evaluation_score ?? 0,
+                    'formations' => $participant->formations
+                ];
+            });
+
+            return response()->json($data);
         } catch (\Exception $e) {
             Log::error('Erreur lors de la récupération des statistiques: ' . $e->getMessage());
             return response()->json(['message' => 'Erreur lors de la récupération des statistiques: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Get the latest participants.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function latest()
+    {
+        try {
+            Log::info('Début de la récupération des derniers participants');
+            
+            $participants = User::whereHas('roles', function($query) {
+                $query->where('name', 'participant');
+            })
+            ->orderBy('created_at', 'desc')
+            ->take(5)
+            ->get(['id', 'nom', 'prenom', 'email', 'created_at']);
+
+            Log::info('Participants récupérés avec succès', ['count' => $participants->count()]);
+            
+            return response()->json($participants);
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de la récupération des derniers participants', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'message' => 'Erreur lors de la récupération des derniers participants',
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
 } 

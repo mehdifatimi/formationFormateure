@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Form, Input, DatePicker, InputNumber, Select, Button, message, Card, Table, Space, Modal, Tag, Tabs, Checkbox } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined, TeamOutlined, CalendarOutlined } from '@ant-design/icons';
-import api from '../../services/api';
+import { Table, Button, Modal, Form, Input, DatePicker, Select, message, Space, Tag, InputNumber } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import api from '../../../services/api';
 import moment from 'moment';
 
-const FormationList = () => {
+const FormationCDC = () => {
   const [formations, setFormations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -15,11 +15,6 @@ const FormationList = () => {
   const [formateurs, setFormateurs] = useState([]);
   const [participants, setParticipants] = useState([]);
   const [loadingOptions, setLoadingOptions] = useState(false);
-  const [activeTab, setActiveTab] = useState('1');
-  const [absenceModalVisible, setAbsenceModalVisible] = useState(false);
-  const [selectedFormation, setSelectedFormation] = useState(null);
-  const [selectedParticipants, setSelectedParticipants] = useState([]);
-  const [absenceDate, setAbsenceDate] = useState(null);
 
   useEffect(() => {
     loadFormations();
@@ -78,12 +73,7 @@ const FormationList = () => {
       form.resetFields();
       loadFormations();
     } catch (error) {
-      if (error.response?.data?.error) {
-        message.error(`Erreur: ${error.response.data.error}`);
-      } else {
-        message.error('Erreur lors de la sauvegarde de la formation');
-      }
-      console.error('Erreur détaillée:', error.response?.data);
+      message.error('Erreur lors de la sauvegarde de la formation');
     }
   };
 
@@ -108,45 +98,6 @@ const FormationList = () => {
     }
   };
 
-  const handleAbsenceClick = (formation) => {
-    setSelectedFormation(formation);
-    setSelectedParticipants([]);
-    setAbsenceDate(null);
-    setAbsenceModalVisible(true);
-  };
-
-  const handleAbsenceSubmit = async () => {
-    if (!absenceDate) {
-      message.error('Veuillez sélectionner une date');
-      return;
-    }
-
-    if (selectedParticipants.length === 0) {
-      message.error('Veuillez sélectionner au moins un participant');
-      return;
-    }
-
-    try {
-      const promises = selectedParticipants.map(participantId =>
-        api.post(`/formations/${selectedFormation.id}/absences`, {
-          participant_id: participantId,
-          date: absenceDate.format('YYYY-MM-DD'),
-          reason: 'Absence',
-          status: 'unjustified',
-          commentaire: null
-        })
-      );
-
-      await Promise.all(promises);
-      message.success('Absences enregistrées avec succès');
-      setAbsenceModalVisible(false);
-      loadFormations();
-    } catch (error) {
-      console.error('Erreur détaillée:', error.response?.data);
-      message.error('Erreur lors de l\'enregistrement des absences');
-    }
-  };
-
   const columns = [
     {
       title: 'Titre',
@@ -164,19 +115,25 @@ const FormationList = () => {
       ),
     },
     {
-      title: 'Participants',
-      dataIndex: 'participants',
-      key: 'participants',
-      render: (participants) => (
-        <span>{participants?.length || 0} participants</span>
-      ),
+      title: 'Date de début',
+      dataIndex: 'date_debut',
+      key: 'date_debut',
+      render: (date) => moment(date).format('DD/MM/YYYY'),
     },
     {
-      title: 'Absences',
-      dataIndex: 'absences',
-      key: 'absences',
-      render: (absences) => (
-        <span>{absences?.length || 0} absences</span>
+      title: 'Date de fin',
+      dataIndex: 'date_fin',
+      key: 'date_fin',
+      render: (date) => moment(date).format('DD/MM/YYYY'),
+    },
+    {
+      title: 'Statut',
+      dataIndex: 'statut',
+      key: 'statut',
+      render: (statut) => (
+        <Tag color={statut === 'planifiée' ? 'blue' : statut === 'en_cours' ? 'green' : 'red'}>
+          {statut}
+        </Tag>
       ),
     },
     {
@@ -198,87 +155,10 @@ const FormationList = () => {
           >
             Supprimer
           </Button>
-          <Button
-            type="default"
-            icon={<CalendarOutlined />}
-            onClick={() => handleAbsenceClick(record)}
-          >
-            Gérer les absences
-          </Button>
         </Space>
       ),
     },
   ];
-
-  const renderParticipantsTab = (formation) => {
-    if (!formation.participants) return null;
-
-    return (
-      <div>
-        <Table
-          dataSource={formation.participants}
-          rowKey="id"
-          columns={[
-            {
-              title: 'Nom',
-              dataIndex: 'nom',
-              key: 'nom',
-            },
-            {
-              title: 'Prénom',
-              dataIndex: 'prenom',
-              key: 'prenom',
-            },
-            {
-              title: 'Statut',
-              dataIndex: 'pivot',
-              key: 'statut',
-              render: (pivot) => (
-                <Tag color={pivot.statut === 'present' ? 'green' : 'red'}>
-                  {pivot.statut}
-                </Tag>
-              ),
-            },
-          ]}
-        />
-        <div style={{ marginTop: 20 }}>
-          <h4>Historique des absences</h4>
-          <Table
-            dataSource={formation.absences}
-            rowKey="id"
-            columns={[
-              {
-                title: 'Date',
-                dataIndex: 'date',
-                key: 'date',
-                render: (date) => moment(date).format('DD/MM/YYYY'),
-              },
-              {
-                title: 'Participant',
-                dataIndex: ['participant', 'nom'],
-                key: 'participant',
-                render: (_, record) => (
-                  <span>
-                    {record.participant?.prenom} {record.participant?.nom}
-                  </span>
-                ),
-              },
-              {
-                title: 'Statut',
-                dataIndex: 'present',
-                key: 'present',
-                render: (present) => (
-                  <Tag color={present ? 'green' : 'red'}>
-                    {present ? 'Présent' : 'Absent'}
-                  </Tag>
-                ),
-              },
-            ]}
-          />
-        </div>
-      </div>
-    );
-  };
 
   return (
     <div>
@@ -300,63 +180,7 @@ const FormationList = () => {
         dataSource={formations}
         loading={loading}
         rowKey="id"
-        expandable={{
-          expandedRowRender: (record) => (
-            <Tabs
-              activeKey={activeTab}
-              onChange={setActiveTab}
-              items={[
-                {
-                  key: '1',
-                  label: (
-                    <span>
-                      <UserOutlined />
-                      Participants
-                    </span>
-                  ),
-                  children: renderParticipantsTab(record),
-                },
-              ]}
-            />
-          ),
-        }}
       />
-
-      <Modal
-        title="Gérer les absences"
-        open={absenceModalVisible}
-        onCancel={() => setAbsenceModalVisible(false)}
-        onOk={handleAbsenceSubmit}
-        width={600}
-      >
-        {selectedFormation && (
-          <>
-            <Form.Item label="Date">
-              <DatePicker
-                style={{ width: '100%' }}
-                onChange={setAbsenceDate}
-                value={absenceDate}
-              />
-            </Form.Item>
-            <div style={{ marginBottom: 16 }}>
-              <h4>Participants</h4>
-              <Checkbox.Group
-                style={{ width: '100%' }}
-                onChange={setSelectedParticipants}
-                value={selectedParticipants}
-              >
-                {selectedFormation.participants?.map(participant => (
-                  <div key={participant.id} style={{ marginBottom: 8 }}>
-                    <Checkbox value={participant.id}>
-                      {participant.nom} {participant.prenom}
-                    </Checkbox>
-                  </div>
-                ))}
-              </Checkbox.Group>
-            </div>
-          </>
-        )}
-      </Modal>
 
       <Modal
         title={editingFormation ? 'Modifier la formation' : 'Nouvelle formation'}
@@ -487,4 +311,4 @@ const FormationList = () => {
   );
 };
 
-export default FormationList;
+export default FormationCDC; 

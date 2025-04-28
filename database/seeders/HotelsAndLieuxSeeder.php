@@ -6,26 +6,10 @@ use Illuminate\Database\Seeder;
 use App\Models\Hotel;
 use App\Models\Lieu;
 
-class DatabaseSeeder extends Seeder
+class HotelsAndLieuxSeeder extends Seeder
 {
-    /**
-     * Seed the application's database.
-     */
-    public function run(): void
+    public function run()
     {
-        $this->call([
-            RolesAndPermissionsSeeder::class,
-            UserSeeder::class,
-            ProfilSeeder::class,
-            HotelSeeder::class,
-            LieuSeeder::class,
-            ParticipantSeeder::class,
-            FormationSeeder::class,
-            FormationParticipantSeeder::class,
-            AbsenceSeeder::class,
-            FormateurSeeder::class,
-        ]);
-
         // Création des hôtels
         Hotel::create([
             'nom' => 'Hôtel Royal',
@@ -62,4 +46,4 @@ class DatabaseSeeder extends Seeder
             'actif' => true
         ]);
     }
-}
+} 

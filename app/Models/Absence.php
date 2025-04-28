@@ -16,11 +16,12 @@ class Absence extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'participant_id',
         'formation_id',
+        'participant_id',
         'date',
         'reason',
-        'status'
+        'status',
+        'commentaire'
     ];
 
     /**

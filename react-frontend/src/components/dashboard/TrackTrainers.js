@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { getParticipantProgress } from '../../services/participantService';
-import { FaUser, FaCalendarAlt, FaUserClock, FaChartBar, FaSearch, FaFilter } from 'react-icons/fa';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { FaUser, FaCalendarAlt, FaUserClock, FaChartBar, FaSearch, FaFilter, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import './TrackTrainers.css';
+
+const ITEMS_PER_PAGE = 6;
 
 const TrackTrainers = () => {
     const [loading, setLoading] = useState(true);
@@ -10,22 +12,27 @@ const TrackTrainers = () => {
     const [trainers, setTrainers] = useState([]);
     const [filteredTrainers, setFilteredTrainers] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
     const [filterOptions, setFilterOptions] = useState({
         minFormations: 0,
         maxAbsenceRate: 100,
         minEvaluationScore: 0
     });
 
-    // Fetch trainer progress data on component mount
+    // Fetch trainer data
     useEffect(() => {
         const fetchTrainerProgress = async () => {
             try {
                 setLoading(true);
                 const data = await getParticipantProgress();
+                if (!data || !Array.isArray(data)) {
+                    throw new Error('Format de données invalide');
+                }
                 setTrainers(data);
                 setFilteredTrainers(data);
             } catch (err) {
-                setError('Erreur lors du chargement des données des formateurs');
+                setError(err.message || 'Erreur lors du chargement des données des formateurs');
                 console.error(err);
             } finally {
                 setLoading(false);
@@ -35,7 +42,7 @@ const TrackTrainers = () => {
         fetchTrainerProgress();
     }, []);
 
-    // Filter trainers based on search term and filter options
+    // Filter and sort trainers
     useEffect(() => {
         let result = [...trainers];
         
@@ -43,59 +50,117 @@ const TrackTrainers = () => {
         if (searchTerm) {
             const term = searchTerm.toLowerCase();
             result = result.filter(trainer => 
-                trainer.nom.toLowerCase().includes(term) || 
-                trainer.prenom.toLowerCase().includes(term) ||
-                trainer.email.toLowerCase().includes(term)
+                trainer.nom?.toLowerCase().includes(term) || 
+                trainer.prenom?.toLowerCase().includes(term) ||
+                trainer.email?.toLowerCase().includes(term)
             );
         }
         
         // Apply filter options
-        result = result.filter(trainer => 
-            trainer.total_formations >= filterOptions.minFormations &&
-            trainer.absence_rate <= filterOptions.maxAbsenceRate &&
-            trainer.evaluation_score >= filterOptions.minEvaluationScore
-        );
+        result = result.filter(trainer => {
+            const formations = trainer.total_formations || 0;
+            const absenceRate = trainer.absence_rate || 0;
+            const evaluationScore = trainer.evaluation_score || 0;
+            
+            return formations >= filterOptions.minFormations &&
+                   absenceRate <= filterOptions.maxAbsenceRate &&
+                   evaluationScore >= filterOptions.minEvaluationScore;
+        });
+
+        // Apply sorting
+        if (sortConfig.key) {
+            result.sort((a, b) => {
+                const aValue = a[sortConfig.key] || 0;
+                const bValue = b[sortConfig.key] || 0;
+                
+                if (aValue < bValue) {
+                    return sortConfig.direction === 'asc' ? -1 : 1;
+                }
+                if (aValue > bValue) {
+                    return sortConfig.direction === 'asc' ? 1 : -1;
+                }
+                return 0;
+            });
+        }
         
         setFilteredTrainers(result);
-    }, [searchTerm, filterOptions, trainers]);
+        setCurrentPage(1); // Reset to first page when filters change
+    }, [searchTerm, filterOptions, trainers, sortConfig]);
 
-    const handleSearchChange = (e) => {
+    const handleSearchChange = useCallback((e) => {
         setSearchTerm(e.target.value);
-    };
+    }, []);
 
-    const handleFilterChange = (e) => {
+    const handleFilterChange = useCallback((e) => {
         const { name, value } = e.target;
+        const numValue = parseFloat(value);
+        
+        if (isNaN(numValue)) {
+            return;
+        }
+
         setFilterOptions(prev => ({
             ...prev,
-            [name]: parseFloat(value) || 0
+            [name]: numValue
         }));
-    };
+    }, []);
 
-    const resetFilters = () => {
+    const handleSort = useCallback((key) => {
+        setSortConfig(prev => ({
+            key,
+            direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+        }));
+    }, []);
+
+    const resetFilters = useCallback(() => {
         setSearchTerm('');
         setFilterOptions({
             minFormations: 0,
             maxAbsenceRate: 100,
             minEvaluationScore: 0
         });
-    };
+        setSortConfig({ key: null, direction: 'asc' });
+    }, []);
 
-    // Prepare data for charts
-    const prepareChartData = () => {
+    // Prepare chart data with useMemo for better performance
+    const chartData = useMemo(() => {
         return filteredTrainers.map(trainer => ({
-            name: `${trainer.prenom} ${trainer.nom}`,
-            formations: trainer.total_formations,
-            completed: trainer.completed_formations,
-            absences: trainer.absences,
-            absenceRate: trainer.absence_rate,
-            evaluationScore: trainer.evaluation_score
+            name: `${trainer.prenom || ''} ${trainer.nom || ''}`.trim(),
+            formations: trainer.total_formations || 0,
+            completed: trainer.completed_formations || 0,
+            absences: trainer.absences || 0,
+            absenceRate: trainer.absence_rate || 0,
+            evaluationScore: trainer.evaluation_score || 0
         }));
-    };
+    }, [filteredTrainers]);
 
-    const chartData = prepareChartData();
-    
-    // Colors for charts
-    const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
+    // Pagination
+    const totalPages = Math.ceil(filteredTrainers.length / ITEMS_PER_PAGE);
+    const paginatedTrainers = useMemo(() => {
+        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+        return filteredTrainers.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+    }, [filteredTrainers, currentPage]);
+
+    const handlePageChange = useCallback((page) => {
+        setCurrentPage(page);
+    }, []);
+
+    // Custom tooltip for charts
+    const CustomTooltip = ({ active, payload, label }) => {
+        if (active && payload && payload.length) {
+            return (
+                <div className="custom-tooltip">
+                    <p className="label">{label}</p>
+                    {payload.map((entry, index) => (
+                        <p key={index} style={{ color: entry.color }}>
+                            {entry.name}: {entry.value}
+                        </p>
+                    ))}
+                </div>
+            );
+        }
+        return null;
+    };
 
     if (loading) {
         return (
@@ -141,6 +206,7 @@ const TrackTrainers = () => {
                             value={filterOptions.minFormations}
                             onChange={handleFilterChange}
                             min="0"
+
                         />
                     </div>
 
@@ -188,10 +254,20 @@ const TrackTrainers = () => {
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="name" />
                             <YAxis />
-                            <Tooltip />
+                            <Tooltip content={<CustomTooltip />} />
                             <Legend />
-                            <Bar dataKey="formations" name="Total Formations" fill="#8884d8" />
-                            <Bar dataKey="completed" name="Formations Terminées" fill="#82ca9d" />
+                            <Bar 
+                                dataKey="formations" 
+                                name="Total Formations" 
+                                fill="#8884d8"
+                                animationDuration={1500}
+                            />
+                            <Bar 
+                                dataKey="completed" 
+                                name="Formations Terminées" 
+                                fill="#82ca9d"
+                                animationDuration={1500}
+                            />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
@@ -206,16 +282,21 @@ const TrackTrainers = () => {
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="name" />
                             <YAxis />
-                            <Tooltip />
+                            <Tooltip content={<CustomTooltip />} />
                             <Legend />
-                            <Bar dataKey="absenceRate" name="Taux d'Absence (%)" fill="#ff8042" />
+                            <Bar 
+                                dataKey="absenceRate" 
+                                name="Taux d'Absence (%)" 
+                                fill="#ff8042"
+                                animationDuration={1500}
+                            />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
             </div>
 
             <div className="trainers-grid">
-                {filteredTrainers.map(trainer => (
+                {paginatedTrainers.map(trainer => (
                     <div key={trainer.id} className="trainer-card">
                         <div className="trainer-header">
                             <div className="trainer-avatar">
@@ -228,28 +309,37 @@ const TrackTrainers = () => {
                         </div>
 
                         <div className="trainer-stats">
-                            <div className="stat-item">
+                            <div className="stat-item" onClick={() => handleSort('total_formations')}>
                                 <FaCalendarAlt />
                                 <div className="stat-content">
-                                    <span className="stat-value">{trainer.total_formations}</span>
+                                    <span className="stat-value">{trainer.total_formations || 0}</span>
                                     <span className="stat-label">Formations</span>
                                 </div>
+                                {sortConfig.key === 'total_formations' && (
+                                    sortConfig.direction === 'asc' ? <FaSortUp /> : <FaSortDown />
+                                )}
                             </div>
 
-                            <div className="stat-item">
+                            <div className="stat-item" onClick={() => handleSort('absence_rate')}>
                                 <FaUserClock />
                                 <div className="stat-content">
-                                    <span className="stat-value">{trainer.absence_rate}%</span>
+                                    <span className="stat-value">{trainer.absence_rate || 0}%</span>
                                     <span className="stat-label">Absences</span>
                                 </div>
+                                {sortConfig.key === 'absence_rate' && (
+                                    sortConfig.direction === 'asc' ? <FaSortUp /> : <FaSortDown />
+                                )}
                             </div>
 
-                            <div className="stat-item">
+                            <div className="stat-item" onClick={() => handleSort('evaluation_score')}>
                                 <FaChartBar />
                                 <div className="stat-content">
-                                    <span className="stat-value">{trainer.evaluation_score}</span>
+                                    <span className="stat-value">{trainer.evaluation_score || 0}</span>
                                     <span className="stat-label">Évaluation</span>
                                 </div>
+                                {sortConfig.key === 'evaluation_score' && (
+                                    sortConfig.direction === 'asc' ? <FaSortUp /> : <FaSortDown />
+                                )}
                             </div>
                         </div>
 
@@ -273,6 +363,20 @@ const TrackTrainers = () => {
                     </div>
                 ))}
             </div>
+
+            {totalPages > 1 && (
+                <div className="pagination">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                        <button
+                            key={page}
+                            className={`page-button ${currentPage === page ? 'active' : ''}`}
+                            onClick={() => handlePageChange(page)}
+                        >
+                            {page}
+                        </button>
+                    ))}
+                </div>
+            )}
 
             {filteredTrainers.length === 0 && (
                 <div className="no-results">

@@ -10,6 +10,7 @@ use App\Models\Role;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Routing\Controller as BaseController;
+use Illuminate\Validation\ValidationException;
 
 class AuthController extends BaseController
 {
@@ -21,62 +22,32 @@ class AuthController extends BaseController
     public function login(Request $request)
     {
         try {
-            Log::info('Tentative de connexion', [
-                'email' => $request->email,
-                'request_data' => $request->all()
-            ]);
-
-            $validator = Validator::make($request->all(), [
+            $request->validate([
                 'email' => 'required|email',
                 'password' => 'required'
             ]);
 
-            if ($validator->fails()) {
-                Log::warning('Validation échouée', [
-                    'errors' => $validator->errors()->toArray()
+            if (Auth::attempt($request->only('email', 'password'))) {
+                $user = Auth::user();
+                $token = $user->createToken('auth-token')->plainTextToken;
+
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'Logged in successfully',
+                    'user' => $user,
+                    'token' => $token
                 ]);
-                return response()->json([
-                    'message' => 'Erreur de validation',
-                    'errors' => $validator->errors()
-                ], 422);
             }
 
-            if (!Auth::attempt($request->only('email', 'password'))) {
-                Log::warning('Connexion échouée');
-                return response()->json([
-                    'message' => 'Identifiants invalides'
-                ], 422);
-            }
-
-            $user = Auth::user();
-            $token = $user->createToken('auth-token')->plainTextToken;
-
-            Log::info('Connexion réussie', [
-                'user_id' => $user->id
+            throw ValidationException::withMessages([
+                'email' => ['The provided credentials are incorrect.']
             ]);
 
-            return response()->json([
-                'token' => $token,
-                'user' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'role' => $user->role
-                ]
-            ])->withHeaders([
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Credentials' => 'true',
-                'Access-Control-Allow-Methods' => 'POST, OPTIONS',
-                'Access-Control-Allow-Headers' => 'Content-Type, Authorization, X-Requested-With'
-            ]);
         } catch (\Exception $e) {
-            Log::error('Erreur de connexion', [
-                'error' => $e->getMessage()
-            ]);
             return response()->json([
-                'message' => 'Erreur de connexion',
-                'error' => $e->getMessage()
-            ], 500);
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], 401);
         }
     }
 
@@ -84,14 +55,16 @@ class AuthController extends BaseController
     {
         try {
             $request->user()->currentAccessToken()->delete();
-            return response()->json(['message' => 'Déconnexion réussie']);
-        } catch (\Exception $e) {
-            Log::error('Erreur de déconnexion', [
-                'error' => $e->getMessage()
-            ]);
+            Auth::guard('web')->logout();
+            
             return response()->json([
-                'message' => 'Erreur de déconnexion',
-                'error' => $e->getMessage()
+                'status' => 'success',
+                'message' => 'Successfully logged out'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage()
             ], 500);
         }
     }

@@ -32,7 +32,7 @@ use Laravel\Sanctum\Http\Controllers\CsrfCookieController;
 // CORS preflight requests
 Route::options('{any}', function () {
     return response('', 200)
-        ->header('Access-Control-Allow-Origin', 'http://localhost:3000')
+        ->header('Access-Control-Allow-Origin', '*')
         ->header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
         ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-XSRF-TOKEN')
         ->header('Access-Control-Allow-Credentials', 'true');
@@ -44,88 +44,66 @@ Route::get('/sanctum/csrf-cookie', [CsrfCookieController::class, 'show']);
 // Routes publiques
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
-
+Route::get('/csrf-cookie', function() {
+    return response()->json(['message' => 'CSRF cookie set']);
+});
 
 // Routes protégées
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::get('/user', function (Request $request) {
+        return $request->user();
+    });
+    Route::post('/logout', [AuthController::class, 'logout']);
+
+    // Routes pour les formations
+    Route::prefix('formations')->group(function () {
+        Route::get('/', [FormationController::class, 'index']);
+        Route::get('/options', [FormationController::class, 'getOptionsData']);
+        Route::post('/', [FormationController::class, 'store']);
+        Route::get('/{formation}', [FormationController::class, 'show']);
+        Route::put('/{formation}', [FormationController::class, 'update']);
+        Route::delete('/{formation}', [FormationController::class, 'destroy']);
+        Route::post('/{formation}/absences', [FormationController::class, 'handleAbsence']);
+    });
+
     // API Resource Routes
+    Route::apiResource('formations', FormationController::class);
     Route::apiResource('regions', RegionController::class);
     Route::apiResource('villes', VilleController::class);
     Route::apiResource('drs', DRController::class);
     Route::apiResource('drifs', DRIFController::class);
     Route::apiResource('cdcs', CDCController::class);
     Route::apiResource('filieres', FiliereController::class);
-    Route::apiResource('formations', FormationController::class);
     Route::apiResource('animateurs', AnimateurController::class);
     Route::apiResource('participants', ParticipantController::class);
     Route::apiResource('formateurs', FormateurController::class);
-    Route::apiResource('profiles', ProfilController::class);
+    Route::apiResource('profils', ProfilController::class);
     Route::apiResource('absences', AbsenceController::class);
     Route::apiResource('roles', RoleController::class);
 
-    // Routes supplémentaires
-    Route::post('/logout', [AuthController::class, 'logout']);
-    Route::post('/refresh-token', [AuthController::class, 'refreshToken']);
-    Route::get('/user', function (Request $request) {
-        return $request->user();
+    // Participant routes
+    Route::prefix('participants')->group(function () {
+        Route::get('/latest', [ParticipantController::class, 'latest']);
+        Route::get('/progress', [ParticipantController::class, 'getProgress']);
+        Route::post('/{participant}/formations', [ParticipantController::class, 'attachFormation']);
+        Route::delete('/{participant}/formations/{formation}', [ParticipantController::class, 'detachFormation']);
+        Route::put('/{participant}/formations/{formation}/status', [ParticipantController::class, 'updateFormationStatus']);
     });
 
-    // Participant formation management routes
-    Route::post('participants/{participant}/formations', [ParticipantController::class, 'attachFormation']);
-    Route::delete('participants/{participant}/formations/{formation}', [ParticipantController::class, 'detachFormation']);
-    Route::put('participants/{participant}/formations/{formation}/status', [ParticipantController::class, 'updateFormationStatus']);
-    Route::post('/formations/{formation}/participants/{participant}', [FormationController::class, 'addParticipant']);
-});
+    // Profil routes
+    Route::put('profils/{profil}/status', [ProfilController::class, 'updateStatus']);
 
-// Profile status update route
-Route::put('profiles/{profil}/status', [ProfilController::class, 'updateStatus']);
-
-// Formation validation routes
-Route::middleware('auth:sanctum')->group(function () {
-    Route::post('formations/{formation}/validate', [FormationController::class, 'validate']);
-    Route::post('formations/{formation}/reject', [FormationController::class, 'reject']);
-    Route::get('formations/pending-validations', [FormationController::class, 'pendingValidations']);
-});
-
-// Participant progress tracking route
-Route::middleware('auth:sanctum')->get('participants/progress', [ParticipantController::class, 'getProgress']);
-
-// Absence management routes
-Route::middleware('auth:sanctum')->group(function () {
+    // Absence routes
     Route::get('absences/statistics', [AbsenceController::class, 'statistics']);
-    Route::apiResource('absences', AbsenceController::class);
-});
 
-// Routes protégées par authentification
-Route::middleware('auth:sanctum')->group(function () {
-    // Routes pour les formations
-    Route::get('/formations', [FormationController::class, 'index']);
-    Route::post('/formations', [FormationController::class, 'store']);
-    Route::put('/formations/{formation}', [FormationController::class, 'update']);
-    Route::delete('/formations/{formation}', [FormationController::class, 'destroy']);
-    Route::post('/formations/{formation}/validate', [FormationController::class, 'validate']);
-
-    // Routes pour les formateurs
-    Route::get('/formateurs', [FormateurController::class, 'index']);
-    Route::post('/formateurs', [FormateurController::class, 'store']);
-    Route::put('/formateurs/{formateur}', [FormateurController::class, 'update']);
-    Route::delete('/formateurs/{formateur}', [FormateurController::class, 'destroy']);
+    // Role management routes
+    Route::prefix('users')->group(function () {
+        Route::post('/{user}/roles', [RoleController::class, 'assignRole']);
+        Route::delete('/{user}/roles', [RoleController::class, 'removeRole']);
+        Route::put('/{user}/roles', [RoleController::class, 'syncRoles']);
+    });
 
     // Routes pour les participants
-    Route::get('/participants', [ParticipantController::class, 'index']);
-    Route::post('/participants', [ParticipantController::class, 'store']);
-    Route::put('/participants/{participant}', [ParticipantController::class, 'update']);
-    Route::delete('/participants/{participant}', [ParticipantController::class, 'destroy']);
-
-    // Routes pour les absences
-    Route::get('/absences', [AbsenceController::class, 'index']);
-    Route::post('/absences', [AbsenceController::class, 'store']);
-    Route::put('/absences/{absence}', [AbsenceController::class, 'update']);
-    Route::delete('/absences/{absence}', [AbsenceController::class, 'destroy']);
-
-    // Routes pour les rôles et permissions
-    Route::get('/roles', [RoleController::class, 'index']);
-    Route::post('/users/{user}/roles', [RoleController::class, 'assignRole']);
-    Route::delete('/users/{user}/roles', [RoleController::class, 'removeRole']);
-    Route::put('/users/{user}/roles', [RoleController::class, 'syncRoles']);
+    Route::get('/participants/latest', [ParticipantController::class, 'latest']);
+    Route::apiResource('participants', ParticipantController::class);
 });

@@ -298,6 +298,82 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+/* Custom Tooltip */
+.custom-tooltip {
+    background-color: white;
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e0e0e0;
+}
+
+.custom-tooltip .label {
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    color: #2c3e50;
+}
+
+/* Sorting */
+.stat-item {
+    cursor: pointer;
+    transition: background-color 0.3s;
+    padding: 0.5rem;
+    border-radius: 4px;
+}
+
+.stat-item:hover {
+    background-color: #f0f0f0;
+}
+
+.stat-item svg:last-child {
+    margin-left: 0.5rem;
+    font-size: 0.8rem;
+}
+
+/* Pagination */
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 2rem;
+    padding: 1rem;
+}
+
+.page-button {
+    padding: 0.5rem 1rem;
+    border: 1px solid #e0e0e0;
+    background-color: white;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.page-button:hover {
+    background-color: #f0f0f0;
+}
+
+.page-button.active {
+    background-color: #3498db;
+    color: white;
+    border-color: #3498db;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.trainer-card {
+    animation: fadeIn 0.5s ease-out;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .track-trainers-container {
@@ -338,5 +414,23 @@
 
     .stat-value {
         margin-right: 0.5rem;
+    }
+
+    .pagination {
+        flex-wrap: wrap;
+    }
+    
+    .page-button {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.9rem;
+    }
+    
+    .stat-item {
+        padding: 0.3rem;
+    }
+    
+    .custom-tooltip {
+        padding: 0.8rem;
+        font-size: 0.9rem;
     }
 } 
