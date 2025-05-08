@@ -16,8 +16,11 @@ use App\Http\Controllers\FormateurController;
 use App\Http\Controllers\ProfilController;
 use App\Http\Controllers\AbsenceController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\FormationValiderController;
 use Laravel\Sanctum\Http\Controllers\CsrfCookieController;
-
+use App\Http\Controllers\UserController;
+use App\Models\Formation;
+use App\Http\Controllers\SpecialiteController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -106,4 +109,45 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Routes pour les participants
     Route::get('/participants/latest', [ParticipantController::class, 'latest']);
     Route::apiResource('participants', ParticipantController::class);
+
+    // Routes pour la validation des formations
+    Route::post('/formations/{formation}/validate', [FormationValiderController::class, 'store']);
+    Route::delete('/formations/{formation}/validate', [FormationValiderController::class, 'destroy']);
+
+    // Route pour obtenir les formations du formateur connecté
+    Route::get('/trainer/formations', function (Request $request) {
+        try {
+            $user = $request->user();
+            
+            if (!$user) {
+                return response()->json(['error' => 'Utilisateur non authentifié'], 401);
+            }
+
+            $formations = Formation::whereHas('formateur', function($query) use ($user) {
+                $query->where('nom', $user->nom)
+                      ->where('prenom', $user->prenom);
+            })
+            ->with(['formateur', 'participants', 'absences.participant', 'formation_valider'])
+            ->get();
+
+            return response()->json($formations);
+        } catch (\Exception $e) {
+            \Log::error('Erreur dans /trainer/formations: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Une erreur est survenue lors de la récupération des formations',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    });
+
+    // Routes pour les spécialités
+    Route::get('/specialites', [SpecialiteController::class, 'index']);
+    Route::post('/specialites', [SpecialiteController::class, 'store']);
+
+    // Routes pour la gestion des utilisateurs
+    Route::post('/users', [UserController::class, 'store']);
+    Route::get('/users', [UserController::class, 'index']);
+    Route::get('/users/{user}', [UserController::class, 'show']);
+    Route::put('/users/{user}', [UserController::class, 'update']);
+    Route::delete('/users/{user}', [UserController::class, 'destroy']);
 });

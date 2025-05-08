@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Routing\Controller as BaseController;
 use Illuminate\Validation\ValidationException;
+use App\Events\UserCreated;
 
 class AuthController extends BaseController
 {
@@ -71,64 +72,29 @@ class AuthController extends BaseController
 
     public function register(Request $request)
     {
-        try {
-            $validated = $request->validate([
-                'name' => 'required|string|max:255',
-                'email' => 'required|string|email|max:255|unique:users',
-                'password' => 'required|string|min:8|confirmed',
-            ]);
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:8|confirmed',
+            'role' => 'required|string|in:admin,formateur,participant,cdc,drf,animateur',
+        ]);
 
-            $user = User::create([
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-                'password' => $validated['password'],
-                'role' => 'formateur_participant' // Rôle par défaut
-            ]);
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'role' => $request->role,
+        ]);
 
-            // Attribution du rôle par défaut
-            $role = Role::where('slug', 'formateur_participant')->first();
-            if ($role) {
-                $user->syncRoles([$role]);
-            }
+        // Déclencher l'événement de création d'utilisateur
+        event(new UserCreated($user));
 
-            $token = $user->createToken('auth-token')->plainTextToken;
+        $token = $user->createToken('auth_token')->plainTextToken;
 
-            return response()->json([
-                'user' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'role' => $user->role,
-                    'permissions' => $user->getAllPermissions()->pluck('slug')
-                ],
-                'token' => $token,
-            ], 201)->withHeaders([
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Credentials' => 'true',
-                'Access-Control-Allow-Methods' => 'POST, OPTIONS',
-                'Access-Control-Allow-Headers' => 'Content-Type, Authorization, X-Requested-With'
-            ]);
-        } catch (ValidationException $e) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $e->errors()
-            ], 422)->withHeaders([
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Credentials' => 'true',
-                'Access-Control-Allow-Methods' => 'POST, OPTIONS',
-                'Access-Control-Allow-Headers' => 'Content-Type, Authorization, X-Requested-With'
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'An error occurred during registration',
-                'error' => $e->getMessage()
-            ], 500)->withHeaders([
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Credentials' => 'true',
-                'Access-Control-Allow-Methods' => 'POST, OPTIONS',
-                'Access-Control-Allow-Headers' => 'Content-Type, Authorization, X-Requested-With'
-            ]);
-        }
+        return response()->json([
+            'user' => $user,
+            'token' => $token,
+        ], 201);
     }
 
     public function refreshToken(Request $request)

@@ -27,7 +27,9 @@ class Formation extends Model
         'hotel_id',
         'lieu_id',
         'statut',
-        'created_by'
+        'created_by',
+        'validated_by',
+        'validated_at'
     ];
 
     /**
@@ -38,7 +40,8 @@ class Formation extends Model
     protected $casts = [
         'date_debut' => 'datetime',
         'date_fin' => 'datetime',
-        'places_disponibles' => 'integer'
+        'places_disponibles' => 'integer',
+        'validated_at' => 'datetime'
     ];
 
     /**
@@ -46,7 +49,8 @@ class Formation extends Model
      */
     public function formateur(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'formateur_id')->select(['id', 'name as nom', 'email']);
+        return $this->belongsTo(User::class, 'formateur_id')
+            ->select(['id', 'name', 'email', 'prenom', 'nom']);
     }
 
     /**
@@ -146,5 +150,15 @@ class Formation extends Model
     public function lieu()
     {
         return $this->belongsTo(Lieu::class);
+    }
+
+    public function formationValider()
+    {
+        return $this->hasOne(FormationValider::class);
+    }
+
+    public function getValidatedAttribute()
+    {
+        return $this->formationValider()->exists();
     }
 }

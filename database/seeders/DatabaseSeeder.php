@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
+            SpecialiteSeeder::class,
             RolesAndPermissionsSeeder::class,
             UserSeeder::class,
             ProfilSeeder::class,
@@ -24,6 +25,7 @@ class DatabaseSeeder extends Seeder
             FormationParticipantSeeder::class,
             AbsenceSeeder::class,
             FormateurSeeder::class,
+            FormationValiderSeeder::class,
         ]);
 
         // Création des hôtels

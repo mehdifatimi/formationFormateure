@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet, Link, useNavigate } from 'react-router-dom';
-import { FaCalendarAlt, FaUserTie, FaChartBar, FaSignOutAlt } from 'react-icons/fa';
+import { FaCalendarAlt, FaUserTie, FaChartBar, FaSignOutAlt, FaUser } from 'react-icons/fa';
 import './Layout.css';
 
 const Layout = () => {
@@ -17,10 +17,10 @@ const Layout = () => {
             <header className="header">
                 <div className="header-content">
                     <div className="logo-container">
-                        <img src="/ofppt-logo.png" alt="OFPPT Logo" className="logo" />
+                        <img src="/../../public/logoOfppt.png" alt="." className="logo" />
                     </div>
                     <nav className="main-nav">
-                        <Link to="/" className="nav-link">Home</Link>
+                        {/* <Link to="/" className="nav-link">Home</Link>
                         {token && (
                             <>
                                 <Link to="/dashboard" className="nav-link">
@@ -36,12 +36,17 @@ const Layout = () => {
                                     Track Trainers
                                 </Link>
                             </>
-                        )}
+                        )} */}
                     </nav>
                     {token && (
-                        <button onClick={handleLogout} className="logout-btn">
-                            <FaSignOutAlt /> Logout
-                        </button>
+                        <div className="header-buttons">
+                            <Link to="/profile" className="profile-btn">
+                                <FaUser /> Profile
+                            </Link>
+                            <button onClick={handleLogout} className="logout-btn">
+                                <FaSignOutAlt /> Logout
+                            </button>
+                        </div>
                     )}
                 </div>
             </header>

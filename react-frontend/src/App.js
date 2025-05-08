@@ -13,6 +13,7 @@ import Home from './components/Home';
 import Layout from './components/Layout';
 import PlanTraining from './components/dashboard/PlanTraining';
 import TrackTrainers from './components/dashboard/TrackTrainers';
+import Profile from './components/Profile';
 import './App.css';
 
 function App() {
@@ -24,6 +25,11 @@ function App() {
                     <Route path="/register" element={<Register />} />
                     <Route path="/" element={<Layout />}>
                         <Route index element={<Home />} />
+                        <Route path="profile" element={
+                            <PrivateRoute>
+                                <Profile />
+                            </PrivateRoute>
+                        } />
                         <Route path="dashboard" element={
                             <PrivateRoute>
                                 <Dashboard />

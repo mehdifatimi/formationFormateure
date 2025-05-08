@@ -51,4 +51,10 @@ class User extends Authenticatable
     {
         return $this->hasOne(Profil::class);
     }
+
+    public function specialites()
+    {
+        return $this->belongsToMany(Specialite::class, 'formateur_specialite', 'formateur_id', 'specialite_id')
+            ->withTimestamps();
+    }
 }

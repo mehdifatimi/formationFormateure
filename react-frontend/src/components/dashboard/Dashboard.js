@@ -17,6 +17,7 @@ import FormationAnimateur from './animateure/FormationAnimateur';
 import FormationDRF from './drf/FormationDRF';
 import FormationPartisipant from './partisipant/FormationPartisipant';
 import CDCManager from './cdc/CDCManager';
+import GererComptes from './admin/GererComptes';
 import './Dashboard.css';
 
 const { Header, Sider, Content } = Layout;
@@ -35,26 +36,26 @@ const Dashboard = () => {
             icon: <HomeOutlined />,
             label: 'Accueil',
         },
-        {
-            key: 'formations',
-            icon: <CalendarOutlined />,
-            label: 'Formations',
-        },
-        {
-            key: 'participants',
-            icon: <TeamOutlined />,
-            label: 'Participants',
-        },
-        {
-            key: 'formateurs',
-            icon: <UserOutlined />,
-            label: 'Formateurs',
-        },
-        {
-            key: 'plan-training',
-            icon: <CalendarOutlined />,
-            label: 'Plan de formation',
-        },
+        // {
+        //     key: 'formations',
+        //     icon: <CalendarOutlined />,
+        //     label: 'Formations',
+        // },
+        // {
+        //     key: 'participants',
+        //     icon: <TeamOutlined />,
+        //     label: 'Participants',
+        // },
+        // {
+        //     key: 'formateurs',
+        //     icon: <UserOutlined />,
+        //     label: 'Formateurs',
+        // },
+        // {
+        //     key: 'plan-training',
+        //     icon: <CalendarOutlined />,
+        //     label: 'Plan de formation',
+        // },
         {
             key: 'cdc',
             icon: <FileTextOutlined />,
@@ -107,6 +108,17 @@ const Dashboard = () => {
                 },
             ],
         },
+        {
+            key: 'admin',
+            icon: <UserOutlined />,
+            label: 'Admin',
+            children: [
+                {
+                    key: 'admin-gerer-comptes',
+                    label: 'Gérer les comptes',
+                },
+            ],
+        },
     ];
 
     const renderContent = () => {
@@ -131,6 +143,8 @@ const Dashboard = () => {
                 return <FormationAnimateur />;
             case 'partisipant-formations':
                 return <FormationPartisipant />;
+            case 'admin-gerer-comptes':
+                return <GererComptes />;
             default:
                 return null;
         }

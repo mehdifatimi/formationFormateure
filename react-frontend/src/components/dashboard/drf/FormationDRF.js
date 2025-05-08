@@ -88,9 +88,14 @@ const FormationDRF = () => {
     }
   };
 
-  const handleValidate = (id) => {
-    setValidatedFormations([...validatedFormations, id]);
-    message.success('Formation validée avec succès');
+  const handleValidate = async (id) => {
+    try {
+      await api.post(`/formations/${id}/validate`);
+      setValidatedFormations([...validatedFormations, id]);
+      message.success('Formation validée avec succès');
+    } catch (error) {
+      message.error('Erreur lors de la validation de la formation');
+    }
   };
 
   const columns = [
